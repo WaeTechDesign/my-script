@@ -21,11 +21,14 @@ YELLOW='\033[0;33m'
 RESET='\033[0m'
 
 clear
-echo -e "${CYAN}Script 1 : ${RESET}"
+echo -e "${CYAN}Script : ${RESET}"
 echo -e "${CYAN}1. Update & Upgrade System${RESET}"
 echo -e "${CYAN}2. Update & Upgrade System${RESET}"
 echo -e "${CYAN}3. Install Dependecies${RESET}"
-echo -e "${CYAN}4. Change Network Interface to Static IP${RESET}"
+echo -e "${CYAN}4. Install ZeroTier${RESET}"
+echo -e "${CYAN}5. Join Network ZeroTier${RESET}"
+echo -e "${CYAN}6. Install CasaOS${RESET}"
+echo -e "${CYAN}7. Change Network Interface to Static IP${RESET}"
 echo ""
 sleep 10
 clear
