@@ -165,6 +165,21 @@ echo -e "${CYAN}Configuring static IP for LAN...${RESET}"
 echo -e "${GREEN}Static IP successfully configured for LAN.${RESET}"
 echo -e "${CYAN}Setup completed!${RESET}"
 echo -e "${CYAN}You can now log in using the new IP Address : $ip_address (without /24, just the ip address)${RESET}"
+echo ""
+
+# Display the actions taken
+echo -e "${CYAN}Summary of actions performed:${RESET}"
+echo -e "${GREEN}1. Repositories have been added successfully.${RESET}"
+echo -e "${GREEN}2. System was updated and upgraded successfully.${RESET}"
+echo -e "${GREEN}3. Installed packages: $user_packages${RESET}"
+echo -e "${GREEN}4. ZeroTier installed and successfully joined the network with ID $NETWORK_ID.${RESET}"
+echo -e "${GREEN}5. CasaOS installed successfully.${RESET}"
+echo -e "${GREEN}6. Static IP Address has been set successfully for LAN: $ip_address${RESET}"
+echo -e "${GREEN}7. DNS and Gateway have been configured as follows - DNS: $dns, Gateway: $gateway.${RESET}"
+
+# End of script
+echo -e "${CYAN}All actions are complete! Enjoy your setup!${RESET}"
+
 sudo nmcli con mod "Wired connection 1" ipv4.addresses "$ip_address"
 sudo nmcli con mod "Wired connection 1" ipv4.gateway "$gateway"
 sudo nmcli con mod "Wired connection 1" ipv4.dns "$dns"
