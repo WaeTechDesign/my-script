@@ -1,5 +1,7 @@
 #!/bin/bash
 
+clear
+
 # Function to display messages with a delay
 display_message() {
   echo "$1"
@@ -20,7 +22,6 @@ CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
 RESET='\033[0m'
 
-clear
 echo -e "${CYAN}Script : ${RESET}"
 echo -e "${CYAN}1. Update Repository${RESET}"
 echo -e "${CYAN}2. Update & Upgrade System${RESET}"
@@ -104,6 +105,10 @@ if sudo apt install -y curl gnupg lsb-release; then
 else
     echo -e "${RED}Dependency installation failed.${RESET}"
 fi
+echo ""
+sleep 5
+clear
+
 
 # Install ZeroTier
 echo -e "${CYAN}Installing ZeroTier...${RESET}"
@@ -114,6 +119,10 @@ if curl -s https://install.zerotier.com | sudo bash; then
 else
     echo -e "${RED}ZeroTier installation failed.${RESET}"
 fi
+echo ""
+sleep 5
+clear
+
 
 # Ask for the ZeroTier Network ID
 echo -e "${YELLOW}Enter your ZeroTier Network ID:${RESET}"
@@ -128,6 +137,10 @@ if sudo zerotier-cli join $NETWORK_ID; then
 else
     echo -e "${RED}Failed to join the network.${RESET}"
 fi
+echo ""
+sleep 5
+clear
+
 
 # Check the ZeroTier status
 echo -e "${CYAN}Checking ZeroTier status...${RESET}"
@@ -138,6 +151,9 @@ if sudo zerotier-cli listnetworks; then
 else
     echo -e "${RED}Failed to check ZeroTier status.${RESET}"
 fi
+echo ""
+sleep 5
+clear
 
 # Install CasaOS
 echo -e "${CYAN}Installing CasaOS...${RESET}"
@@ -148,7 +164,9 @@ if curl -fsSL https://get.casaos.io | bash; then
 else
     echo -e "${RED}CasaOS installation failed.${RESET}"
 fi
-
+echo ""
+sleep 5
+clear
 
 # Input for IP Address, Gateway, and DNS configuration
 echo -e "${YELLOW}Input Static IP Address Configuration : ${RESET}"
@@ -172,10 +190,12 @@ echo -e "${CYAN}Summary of actions performed:${RESET}"
 echo -e "${GREEN}1. Repositories have been added successfully.${RESET}"
 echo -e "${GREEN}2. System was updated and upgraded successfully.${RESET}"
 echo -e "${GREEN}3. Installed packages: $user_packages${RESET}"
-echo -e "${GREEN}4. ZeroTier installed and successfully joined the network with ID $NETWORK_ID.${RESET}"
-echo -e "${GREEN}5. CasaOS installed successfully.${RESET}"
-echo -e "${GREEN}6. Static IP Address has been set successfully for LAN: $ip_address${RESET}"
-echo -e "${GREEN}7. DNS and Gateway have been configured as follows - DNS: $dns, Gateway: $gateway.${RESET}"
+echo -e "${GREEN}4. echo -e "${CYAN}Installed packages:${RESET}"
+dpkg -l | grep -E "curl|gnupg|lsb-release|zerotier|casaos"${RESET}"
+echo -e "${GREEN}5. ZeroTier installed and successfully joined the network with ID $NETWORK_ID.${RESET}"
+echo -e "${GREEN}6. CasaOS installed successfully.${RESET}"
+echo -e "${GREEN}7. Static IP Address has been set successfully for LAN: $ip_address${RESET}"
+echo -e "${GREEN}8. DNS and Gateway have been configured as follows - DNS: $dns, Gateway: $gateway.${RESET}"
 
 # End of script
 echo -e "${CYAN}All actions are complete! Enjoy your setup!${RESET}"
