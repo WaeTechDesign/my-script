@@ -22,7 +22,7 @@ RESET='\033[0m'
 
 clear
 echo -e "${CYAN}Script : ${RESET}"
-echo -e "${CYAN}1. Update & Upgrade System${RESET}"
+echo -e "${CYAN}1. Update Repository${RESET}"
 echo -e "${CYAN}2. Update & Upgrade System${RESET}"
 echo -e "${CYAN}3. Install Dependecies${RESET}"
 echo -e "${CYAN}4. Install ZeroTier${RESET}"
