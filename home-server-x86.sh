@@ -195,7 +195,6 @@ echo""
 echo -e "${YELLOW}7. Upgrading system...${RESET}"
 progress_bar $TOTAL_STEPS
 sudo apt upgrade -y &> /dev/null &
-loading_animation $!
 echo -e "${GREEN}System upgraded successfully.${RESET}"
 
 # Final progress
