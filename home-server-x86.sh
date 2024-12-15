@@ -43,7 +43,7 @@ add_repositories() {
 progress_bar() {
     local current=$1
     local total=$2
-    #local progress=$((100 * current / total))
+    local progress=$((100 * current / total))
     local width=50 # Progress bar width
 
     # Calculate completed and remaining parts
@@ -58,7 +58,7 @@ progress_bar() {
 loading_animation() {
     local pid=$1
     local delay=0.1
-    local spinstr='|/-\'
+    local spinstr='|/-\' 
     echo -n " "
     while [ -d /proc/$pid ]; do
         local temp=${spinstr#?}
@@ -70,13 +70,13 @@ loading_animation() {
     printf "    \b\b\b\b"
 }
 
-# Total steps (adjust based on your script)
-TOTAL_STEPS=8
+# Total steps (adjusted to 7 steps)
+TOTAL_STEPS=7
 step=0
 
 clear
 echo -e "${CYAN}Starting script...${RESET}"
-echo""
+echo ""
 echo ""
 
 # 1. Add Repositories
@@ -99,11 +99,11 @@ echo -e "${GREEN}Repositories updated successfully.${RESET}"
 # 3. Install Additional Packages
 echo ""
 ((step++))
-echo -e "${YELLOW}8. Installing additional packages...${RESET}"
+echo -e "${YELLOW}3. Installing additional packages...${RESET}"
 progress_bar $step $TOTAL_STEPS
-sudo apt install -y curl gnupg lsb-release
 echo -e "${CYAN}Enter packages to install (separate with spaces):${RESET}"
 read -r packages
+sudo apt install -y curl gnupg lsb-release &> /dev/null &
 sudo apt install -y $packages &> /dev/null &
 loading_animation $!
 echo -e "${GREEN}Additional packages installed successfully.${RESET}"
@@ -111,7 +111,7 @@ echo -e "${GREEN}Additional packages installed successfully.${RESET}"
 # 4. Install ZeroTier
 echo ""
 ((step++))
-echo -e "${YELLOW}3. Installing ZeroTier...${RESET}"
+echo -e "${YELLOW}4. Installing ZeroTier...${RESET}"
 progress_bar $step $TOTAL_STEPS
 dpkg -l | grep -qw "zerotier-one"
 if [ $? -eq 0 ]; then
@@ -125,7 +125,7 @@ fi
 # 5. Install CasaOS
 echo ""
 ((step++))
-echo -e "${YELLOW}4. Installing CasaOS...${RESET}"
+echo -e "${YELLOW}5. Installing CasaOS...${RESET}"
 progress_bar $step $TOTAL_STEPS
 if command -v casaos &> /dev/null || [ -f "/usr/bin/casaos" ] || [ -d "/etc/casaos" ]; then
     echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
@@ -145,7 +145,7 @@ fi
 # 6. Install LXDE GUI
 echo ""
 ((step++))
-echo -e "${YELLOW}5. Installing LXDE GUI...${RESET}"
+echo -e "${YELLOW}6. Installing LXDE GUI...${RESET}"
 progress_bar $step $TOTAL_STEPS
 dpkg -l | grep -qw "lxde"
 if [ $? -eq 0 ]; then
@@ -153,52 +153,19 @@ if [ $? -eq 0 ]; then
 else
     sudo apt install -y lxde &> /dev/null &
     loading_animation $!
-    echo -e "${GREEN} LXDE GUI installed successfully.${RESET}"
+    echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
 fi
 
-# 7. Configuring Static IP
+# 7. Upgrade System
 echo ""
 ((step++))
-echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
-progress_bar $step $TOTAL_STEPS
-echo""
-
-ifconfig
-
-echo""
-echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
-read -r interface_name
-echo -e "${YELLOW}Enter the static IP address (e.g., 192.168.1.100/24):${RESET}"
-read -r static_ip
-echo -e "${YELLOW}Enter the gateway (e.g., 192.168.1.1):${RESET}"
-read -r gateway
-echo -e "${YELLOW}Enter the DNS server (e.g., 8.8.8.8):${RESET}"
-read -r dns_server
-
-sudo bash -c "cat > /etc/network/interfaces <<EOF
-auto lo
-iface lo inet loopback
-
-auto $interface_name
-iface $interface_name inet static
-    address $static_ip
-    gateway $gateway
-    dns-nameservers $dns_server
-EOF"
-
-sudo systemctl restart networking
-echo -e "${GREEN}Static IP address configured successfully.${RESET}"
-
-# 8. Upgrade System
-((step++))
-echo""
 echo -e "${YELLOW}7. Upgrading system...${RESET}"
-progress_bar $TOTAL_STEPS
+progress_bar $step $TOTAL_STEPS
 sudo apt upgrade -y &> /dev/null &
+loading_animation $!
 echo -e "${GREEN}System upgraded successfully.${RESET}"
 
-# Final progress
-echo ""
+# Final progress without the progress bar
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
 
 # Reboot Prompt
@@ -209,5 +176,5 @@ if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
     echo -e "${CYAN}Rebooting...${RESET}"
     sudo reboot
 else
-    echo -e "${CYAN}Reboot skipped. Please reboot the system later.${RESET}"
+    echo -e "${CYAN}Reboot skipped. Please reboot the system later. ${RESET}"
 fi
