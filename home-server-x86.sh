@@ -29,8 +29,7 @@ echo -e "${CYAN}3. Install Dependecies${RESET}"
 echo -e "${CYAN}4. Install ZeroTier${RESET}"
 echo -e "${CYAN}5. Join Network ZeroTier${RESET}"
 echo -e "${CYAN}6. Install CasaOS${RESET}"
-echo -e "${CYAN}7. Installing LXDE GUI${RESET}"
-echo -e "${CYAN}8. Change Network Interface to Static IP${RESET}"
+echo -e "${CYAN}7. Change Network Interface to Static IP${RESET}"
 echo ""
 sleep 10
 clear
@@ -52,7 +51,7 @@ echo -e "${CYAN}Updating repositories...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for apt update
-apt update | dialog --title "Updating Repositories" --gauge "Please wait while repositories are being updated..." 10 60 0
+apt-get update | dialog --title "Updating Repositories" --gauge "Please wait while repositories are being updated..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Repositories updated successfully.${RESET}"
 else
@@ -67,7 +66,7 @@ echo -e "${CYAN}Updating and upgrading your system...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for apt upgrade
-apt update && apt upgrade -y | dialog --title "Updating & Upgrading" --gauge "Upgrading the system, please wait..." 10 60 0
+apt-get upgrade -y | dialog --title "Updating & Upgrading" --gauge "Upgrading the system, please wait..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Your system has been successfully updated and upgraded.${RESET}"
 else
@@ -82,7 +81,7 @@ echo -e "${CYAN}Installing LXDE GUI...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for LXDE installation
-apt install -y lxde | dialog --title "Installing LXDE" --gauge "Installing LXDE GUI, please wait..." 10 60 0
+apt-get install -y lxde | dialog --title "Installing LXDE" --gauge "Installing LXDE GUI, please wait..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
 else
@@ -94,7 +93,7 @@ clear
 
 # Set LXDE as the default GUI for booting
 echo -e "${CYAN}Setting LXDE as the default GUI...${RESET}"
-if systemctl set-default graphical.target &&  systemctl isolate graphical.target; then
+if systemctl set-default graphical.target && systemctl isolate graphical.target; then
     echo -e "${GREEN}LXDE set as the default GUI successfully.${RESET}"
 else
     echo -e "${RED}Failed to set LXDE as the default GUI.${RESET}"
