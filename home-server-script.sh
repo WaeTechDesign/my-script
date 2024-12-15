@@ -2,204 +2,181 @@
 
 clear
 
-# Function to display messages with a delay
-display_message() {
-  echo "$1"
-  sleep 2
-  clear
+# Colors for output
+GREEN="\e[32m"
+CYAN="\e[36m"
+YELLOW="\e[33m"
+RED="\e[31m"
+RESET="\e[0m"
+
+# Repositories
+REPOS=(
+"http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware"
+)
+
+# Function to check and add repositories
+add_repositories() {
+    echo -e "${YELLOW}Checking and adding repositories...${RESET}"
+    for REPO in "${REPOS[@]}"; do
+        if grep -Fq "$REPO" /etc/apt/sources.list; then
+            echo -e "${CYAN}Repository already exists:${RESET} $REPO"
+            echo -e "${YELLOW}Do you want to re-add it? (y/n):${RESET}"
+            read -r response
+            if [[ "$response" =~ ^[yY](es|ES)?$ ]]; then
+                echo -e "${CYAN}Re-adding repository...${RESET}"
+                sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+            else
+                echo -e "${CYAN}Skipping repository: $REPO${RESET}"
+            fi
+        else
+            echo -e "${CYAN}Adding new repository:${RESET} $REPO"
+            sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+        fi
+    done
 }
 
-# Function to pause and wait for user input
-pause() {
-  echo -e "${YELLOW}Press [Enter] to continue...${RESET}"
-  read -r
+# Function to update progress bar
+progress_bar() {
+    local current=$1
+    local total=$2
+    local progress=$((100 * current / total))
+    local width=50 # Progress bar width
+
+    # Calculate completed and remaining parts
+    local completed=$((progress * width / 100))
+    local remaining=$((width - completed))
+
+    # Print progress bar (always on the last line of the terminal)
+    printf "\r[%-${width}s] %d%%" "$(printf "#%.0s" $(seq 1 $completed))" "$progress"
 }
 
-# Define Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-RESET='\033[0m'
+# Function for loading animation
+loading_animation() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\' 
+    echo -n " "
+    while [ -d /proc/$pid ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
 
-echo -e "${CYAN}Script : ${RESET}"
-echo -e "${CYAN}1. Update Repository${RESET}"
-echo -e "${CYAN}2. Update & Upgrade System${RESET}"
-echo -e "${CYAN}3. Install Dependecies${RESET}"
-echo -e "${CYAN}4. Install ZeroTier${RESET}"
-echo -e "${CYAN}5. Join Network ZeroTier${RESET}"
-echo -e "${CYAN}6. Install CasaOS${RESET}"
-echo -e "${CYAN}7. Change Network Interface to Static IP${RESET}"
-echo ""
-sleep 10
+# Total steps (adjusted to 7 steps)
+TOTAL_STEPS=7
+step=0
+
 clear
-
-# Adding repositories
-echo -e "${CYAN}Adding repositories...${RESET}"
+echo -e "${CYAN}Starting script...${RESET}"
+echo ""
 echo ""
 
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
-sleep 5
-clear
+# 1. Add Repositories
+((step++))
+echo -e "${YELLOW}1. Adding repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+add_repositories &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories checked and added successfully.${RESET}"
 
-# Update repositories and install packages
-echo -e "${CYAN}Updating repositories...${RESET}"
+# 2. Update Repositories
 echo ""
+((step++))
+echo -e "${YELLOW}2. Updating repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt update &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories updated successfully.${RESET}"
 
-sudo apt-get update
+# 3. Install Additional Packages
+echo ""
+((step++))
+echo -e "${YELLOW}3. Installing additional packages...${RESET}"
+progress_bar $step $TOTAL_STEPS
+echo -e "${CYAN}Installing additional packages : ${RESET}"
+echo ""
+echo -e "${CYAN}Enter packages to install (separate with spaces):${RESET}"
+read -r packages
+sudo apt install -y curl gnupg lsb-release &> /dev/null &
+sudo apt install -y $packages &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Additional packages installed successfully.${RESET}"
+
+# 4. Install ZeroTier
+echo ""
+((step++))
+echo -e "${YELLOW}4. Installing ZeroTier...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "zerotier-one"
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Repositories updated successfully.${RESET}"
+    echo -e "${YELLOW}ZeroTier is already installed. Skipping...${RESET}"
 else
-    echo -e "${RED}Failed to update repositories.${RESET}"
-    exit 1
-fi
-sleep 5
-clear
-
-# Update & Upgrade System
-echo -e "${CYAN}Updating and upgrading your system...${RESET}"
-echo ""
-
-sudo apt-get update && sudo apt-get upgrade -y
-echo -e "${GREEN}Your system has been successfully updated and upgraded.${RESET}"
-sleep 5
-clear
-
-# Input for the list of packages to be installed
-echo -e "${YELLOW}Enter the packages you want to install (space-separated, e.g., curl vim git):${RESET}"
-read -r user_packages
-echo ""
-
-# Install user-specified packages
-echo -e "${CYAN}Installing packages...${RESET}"
-echo ""
-for PACKAGE in $user_packages
-do
-    echo -e "${CYAN}Installing $PACKAGE...${RESET}"
-    sudo apt-get install -y $PACKAGE
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}$PACKAGE installed successfully.${RESET}"
-        echo ""
-    else
-        echo -e "${RED}Failed to install $PACKAGE.${RESET}"
-    fi
-done
-sleep 5
-clear
-
-# Update the system and install dependencies
-echo -e "${CYAN}Updating system and installing dependencies for ZeroTier and CasaOS...${RESET}"
-echo ""
-
-if sudo apt update && sudo apt upgrade -y; then
-    echo -e "${GREEN}System updated successfully.${RESET}"
-else
-    echo -e "${RED}System update failed.${RESET}"
-fi
-if sudo apt install -y curl gnupg lsb-release; then
-    echo -e "${GREEN}Dependencies installed successfully.${RESET}"
-else
-    echo -e "${RED}Dependency installation failed.${RESET}"
-fi
-echo ""
-sleep 5
-clear
-
-
-# Install ZeroTier
-echo -e "${CYAN}Installing ZeroTier...${RESET}"
-echo ""
-
-if curl -s https://install.zerotier.com | sudo bash; then
+    sudo curl -s https://install.zerotier.com | sudo bash &> /dev/null &
+    loading_animation $!
     echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
-else
-    echo -e "${RED}ZeroTier installation failed.${RESET}"
 fi
+
+# 5. Install CasaOS
 echo ""
-sleep 5
-clear
-
-
-# Ask for the ZeroTier Network ID
-echo -e "${YELLOW}Enter your ZeroTier Network ID:${RESET}"
-read NETWORK_ID
-
-# Join the ZeroTier network
-echo -e "${CYAN}Joining ZeroTier network with ID $NETWORK_ID...${RESET}"
-echo ""
-
-if sudo zerotier-cli join $NETWORK_ID; then
-    echo -e "${GREEN}Successfully joined the network.${RESET}"
+((step++))
+echo -e "${YELLOW}5. Installing CasaOS...${RESET}"
+progress_bar $step $TOTAL_STEPS
+if command -v casaos &> /dev/null || [ -f "/usr/bin/casaos" ] || [ -d "/etc/casaos" ]; then
+    echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
 else
-    echo -e "${RED}Failed to join the network.${RESET}"
+    echo -e "${CYAN}CasaOS is not installed. Do you want to install it? (y/n)${RESET}"
+    read -p "Your choice: " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        echo -e "${CYAN}Installing CasaOS...${RESET}"
+        curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
+        loading_animation $!
+        echo -e "${GREEN}CasaOS installed successfully.${RESET}"
+    else
+        echo -e "${YELLOW}Skipped CasaOS installation.${RESET}"
+    fi
 fi
+
+# 6. Install LXDE GUI
 echo ""
-sleep 5
-clear
-
-
-# Check the ZeroTier status
-echo -e "${CYAN}Checking ZeroTier status...${RESET}"
-echo ""
-
-if sudo zerotier-cli listnetworks; then
-    echo -e "${GREEN}ZeroTier status checked successfully.${RESET}"
+((step++))
+echo -e "${YELLOW}6. Installing LXDE GUI...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "lxde"
+if [ $? -eq 0 ]; then
+    echo -e "${YELLOW}LXDE is already installed. Skipping...${RESET}"
 else
-    echo -e "${RED}Failed to check ZeroTier status.${RESET}"
+    sudo apt install -y lxde &> /dev/null &
+    loading_animation $!
+    echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
 fi
-echo ""
-sleep 5
-clear
 
-# Install CasaOS
-echo -e "${CYAN}Installing CasaOS...${RESET}"
+# 7. Upgrade System
 echo ""
+((step++))
+echo -e "${YELLOW}7. Upgrading system...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt upgrade -y &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}System upgraded successfully.${RESET}"
 
-if curl -fsSL https://get.casaos.io | bash; then
-    echo -e "${GREEN}CasaOS installed successfully.${RESET}"
+# Final progress without the progress bar
+echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
+
+# Reboot Prompt
+echo ""
+echo -e "${YELLOW}Do you want to reboot the system now? (y/n):${RESET}"
+read -r reboot_choice
+if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
+    echo -e "${CYAN}Rebooting...${RESET}"
+    sudo reboot
 else
-    echo -e "${RED}CasaOS installation failed.${RESET}"
+    echo -e "${CYAN}Reboot skipped. Please reboot the system later. ${RESET}"
 fi
-echo ""
-sleep 5
-clear
-
-# Input for IP Address, Gateway, and DNS configuration
-echo -e "${YELLOW}Input Static IP Address Configuration : ${RESET}"
-echo -e "${YELLOW}Enter the IP address (e.g., 192.168.0.2/24):${RESET}"
-read -r ip_address
-echo -e "${YELLOW}Enter the Gateway (e.g., 192.168.0.1):${RESET}"
-read -r gateway
-echo -e "${YELLOW}Enter the DNS (e.g., 8.8.8.8):${RESET}"
-read -r dns
-echo""
-
-# Changing LAN port to static IP
-echo -e "${CYAN}Configuring static IP for LAN...${RESET}"
-echo -e "${GREEN}Static IP successfully configured for LAN.${RESET}"
-echo -e "${CYAN}Setup completed!${RESET}"
-echo -e "${CYAN}You can now log in using the new IP Address : $ip_address (without /24, just the ip address)${RESET}"
-echo ""
-
-# Display the actions taken
-echo -e "${CYAN}Summary of actions performed:${RESET}"
-echo -e "${GREEN}1. Repositories have been added successfully.${RESET}"
-echo -e "${GREEN}2. System was updated and upgraded successfully.${RESET}"
-echo -e "${GREEN}3. Installed packages: $user_packages${RESET}"
-echo -e "${GREEN}4. ZeroTier installed and successfully joined the network with ID $NETWORK_ID.${RESET}"
-echo -e "${GREEN}5. CasaOS installed successfully.${RESET}"
-echo -e "${GREEN}6. Static IP Address has been set successfully for LAN: $ip_address${RESET}"
-echo -e "${GREEN}7. DNS and Gateway have been configured as follows - DNS: $dns, Gateway: $gateway.${RESET}"
-
-# End of script
-echo -e "${CYAN}All actions are complete! Enjoy your setup!${RESET}"
-
-sudo nmcli con mod "Wired connection 1" ipv4.addresses "$ip_address"
-sudo nmcli con mod "Wired connection 1" ipv4.gateway "$gateway"
-sudo nmcli con mod "Wired connection 1" ipv4.dns "$dns"
-sudo nmcli con mod "Wired connection 1" ipv4.method manual
-sudo nmcli con down "Wired connection 1" && sudo nmcli con up "Wired connection 1"
