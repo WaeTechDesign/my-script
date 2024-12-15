@@ -75,7 +75,7 @@ step=0
 clear
 echo -e "${CYAN}Starting script...${RESET}"
 echo""
-Echo ""
+echo ""
 
 # 1. Add Repositories
 ((step++))
