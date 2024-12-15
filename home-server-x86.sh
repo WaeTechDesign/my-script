@@ -141,46 +141,32 @@ if [ $? -eq 0 ]; then
 else
     sudo apt install -y lxde &> /dev/null &
     loading_animation $!
-    echo -e "${GREEN} LXDE GUI installed successfully.${RESET}"
+    echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
 fi
 
-# 6. Configuring Static IP
+# 6. Install Additional Packages
 echo ""
 ((step++))
-echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
+echo -e "${YELLOW}6. Installing additional packages...${RESET}"
 progress_bar $step $TOTAL_STEPS
-echo""
-
-echo""
-echo""
-
-ifconfig
-echo""
-echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
-read -r interface_name
-echo -e "${YELLOW}Enter the static IP address (e.g., 192.168.1.100/24):${RESET}"
-read -r static_ip
-echo -e "${YELLOW}Enter the gateway (e.g., 192.168.1.1):${RESET}"
-read -r gateway
-echo -e "${YELLOW}Enter the DNS server (e.g., 8.8.8.8):${RESET}"
-read -r dns_server
-
-sudo bash -c "cat > /etc/network/interfaces <<EOF
-auto lo
-iface lo inet loopback
-
-auto $interface_name
-iface $interface_name inet static
-    address $static_ip
-    gateway $gateway
-    dns-nameservers $dns_server
-EOF"
-
-sudo systemctl restart networking
-echo -e "${GREEN}Static IP address configured successfully.${RESET}"
+sudo apt install -y curl gnupg lsb-release
+install_packages() {
+    echo -e "${CYAN}Enter packages to install (space-separated):${RESET}"
+    read -r packages
+    for package in $packages; do
+        dpkg -l | grep -qw "$package"
+        if [ $? -eq 0 ]; then
+            echo -e "${YELLOW}$package is already installed. Skipping...${RESET}"
+        else
+            echo -e "${YELLOW}Installing $package...${RESET}"
+            sudo apt install -y "$package" &> /dev/null &
+            loading_animation $!
+            echo -e "${GREEN}$package installed successfully.${RESET}"
+        fi
+    done
+}
 
 # 7. Upgrade System
-((step++))
 echo""
 echo -e "${YELLOW}7. Upgrading system...${RESET}"
 progress_bar $step $TOTAL_STEPS
@@ -192,3 +178,14 @@ echo -e "${GREEN}System upgraded successfully.${RESET}"
 echo ""
 progress_bar $TOTAL_STEPS $TOTAL_STEPS
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
+
+# 8. Reboot Confirmation
+echo ""
+echo -e "${CYAN}Do you want to reboot the system now? (y/n)${RESET}"
+read -p "Your choice: " reboot_choice
+if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
+    echo -e "${CYAN}Rebooting system...${RESET}"
+    sudo reboot
+else
+    echo -e "${YELLOW}Reboot skipped. Please reboot the system later.${RESET}"
+fi
