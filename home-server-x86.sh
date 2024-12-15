@@ -193,7 +193,7 @@ echo -e "${GREEN}Static IP address configured successfully.${RESET}"
 ((step++))
 echo""
 echo -e "${YELLOW}7. Upgrading system...${RESET}"
-progress_bar $step $TOTAL_STEPS
+progress_bar $TOTAL_STEPS
 sudo apt upgrade -y &> /dev/null &
 loading_animation $!
 echo -e "${GREEN}System upgraded successfully.${RESET}"
