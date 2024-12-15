@@ -200,7 +200,6 @@ echo -e "${GREEN}System upgraded successfully.${RESET}"
 
 # Final progress
 echo ""
-progress_bar $TOTAL_STEPS 
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
 
 # Reboot Prompt
