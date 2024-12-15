@@ -1,5 +1,7 @@
 #!/bin/bash
 
+clear
+
 # Colors for output
 GREEN="\e[32m"
 CYAN="\e[36m"
