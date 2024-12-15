@@ -43,7 +43,7 @@ add_repositories() {
 progress_bar() {
     local current=$1
     local total=$2
-    local progress=$((100 * current / total))
+    #local progress=$((100 * current / total))
     local width=50 # Progress bar width
 
     # Calculate completed and remaining parts
