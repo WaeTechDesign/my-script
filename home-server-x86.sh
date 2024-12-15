@@ -74,6 +74,8 @@ step=0
 
 clear
 echo -e "${CYAN}Starting script...${RESET}"
+echo""
+Echo ""
 
 # 1. Add Repositories
 ((step++))
@@ -84,6 +86,7 @@ loading_animation $!
 echo -e "${GREEN}Repositories checked and added successfully.${RESET}"
 
 # 2. Update Repositories
+echo ""
 ((step++))
 echo -e "${YELLOW}2. Updating repositories...${RESET}"
 progress_bar $step $TOTAL_STEPS
@@ -92,6 +95,7 @@ loading_animation $!
 echo -e "${GREEN}Repositories updated successfully.${RESET}"
 
 # 3. Install ZeroTier
+echo ""
 ((step++))
 echo -e "${YELLOW}3. Installing ZeroTier...${RESET}"
 progress_bar $step $TOTAL_STEPS
@@ -105,19 +109,27 @@ else
 fi
 
 # 4. Install CasaOS
+echo ""
 ((step++))
 echo -e "${YELLOW}4. Installing CasaOS...${RESET}"
 progress_bar $step $TOTAL_STEPS
-dpkg -l | grep -qw "casaos"
-if [ $? -eq 0 ]; then
+if command -v casaos &> /dev/null || [ -f "/usr/bin/casaos" ] || [ -d "/etc/casaos" ]; then
     echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
 else
-    curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
-    loading_animation $!
-    echo -e "${GREEN}CasaOS installed successfully.${RESET}"
+    echo -e "${CYAN}CasaOS is not installed. Do you want to install it? (y/n)${RESET}"
+    read -p "Your choice: " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        echo -e "${CYAN}Installing CasaOS...${RESET}"
+        curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
+        loading_animation $!
+        echo -e "${GREEN}CasaOS installed successfully.${RESET}"
+    else
+        echo -e "${YELLOW}Skipped CasaOS installation.${RESET}"
+    fi
 fi
 
 # 5. Install LXDE GUI
+echo ""
 ((step++))
 echo -e "${YELLOW}5. Installing LXDE GUI...${RESET}"
 progress_bar $step $TOTAL_STEPS
@@ -127,10 +139,11 @@ if [ $? -eq 0 ]; then
 else
     sudo apt install -y lxde &> /dev/null &
     loading_animation $!
-    echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
+    echo -e "${GREEN} LXDE GUI installed successfully.${RESET}"
 fi
 
 # 6. Configuring Static IP
+echo ""
 ((step++))
 echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
 progress_bar $step $TOTAL_STEPS
@@ -159,6 +172,7 @@ echo -e "${GREEN}Static IP address configured successfully.${RESET}"
 
 # 7. Upgrade System
 ((step++))
+echo""
 echo -e "${YELLOW}7. Upgrading system...${RESET}"
 progress_bar $step $TOTAL_STEPS
 sudo apt upgrade -y &> /dev/null &
@@ -166,5 +180,6 @@ loading_animation $!
 echo -e "${GREEN}System upgraded successfully.${RESET}"
 
 # Final progress
+echo ""
 progress_bar $TOTAL_STEPS $TOTAL_STEPS
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
