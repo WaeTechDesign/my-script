@@ -150,6 +150,10 @@ echo ""
 echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
 progress_bar $step $TOTAL_STEPS
 echo""
+
+echo""
+echo""
+
 ifconfig
 echo""
 echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
