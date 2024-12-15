@@ -102,6 +102,7 @@ echo ""
 echo -e "${YELLOW}3. Installing additional packages...${RESET}"
 progress_bar $step $TOTAL_STEPS
 echo -e "${CYAN}Installing additional packages : ${RESET}"
+echo ""
 echo -e "${CYAN}Enter packages to install (separate with spaces):${RESET}"
 read -r packages
 sudo apt install -y curl gnupg lsb-release &> /dev/null &
