@@ -71,7 +71,7 @@ loading_animation() {
 }
 
 # Total steps (adjust based on your script)
-TOTAL_STEPS=9
+TOTAL_STEPS=8
 step=0
 
 clear
@@ -198,9 +198,8 @@ sudo apt upgrade -y &> /dev/null &
 loading_animation $!
 echo -e "${GREEN}System upgraded successfully.${RESET}"
 
-# 9. Final progress
+# Final progress
 echo ""
-((step++))
 progress_bar $TOTAL_STEPS $TOTAL_STEPS
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
 
@@ -212,5 +211,5 @@ if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
     echo -e "${CYAN}Rebooting...${RESET}"
     sudo reboot
 else
-    echo -e "${CYAN}Reboot skipped.${RESET}"
+    echo -e "${CYAN}Reboot skipped. Please reboot the system later.${RESET}"
 fi
