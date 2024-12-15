@@ -1,216 +1,139 @@
 #!/bin/bash
 
-clear
+# Colors for output
+GREEN="\e[32m"
+CYAN="\e[36m"
+YELLOW="\e[33m"
+RED="\e[31m"
+RESET="\e[0m"
 
-# Function to display messages with a delay
-display_message() {
-  echo "$1"
-  sleep 2
-  clear
-}
-
-# Function to pause and wait for user input
-pause() {
-  echo -e "${YELLOW}Press [Enter] to continue...${RESET}"
-  read -r
-}
-
-# Function for user confirmation
-confirm_action() {
-  read -p "$1 (y/N): " response
-  case "$response" in
-    [yY][eE][sS]|[yY])
-      return 0  # Yes, continue with the action
-      ;;
-    *)
-      return 1  # No, skip this action
-      ;;
-  esac
-}
-
-# Define Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-RESET='\033[0m'
-
-# Animation function for loading
-loading_animation() {
-  local pid=$1
-  local delay=0.1
-  local spin='-\|/'
-  echo -n '  '
-  while kill -0 $pid 2>/dev/null; do
-    for i in `seq 0 3`; do
-      echo -n "${spin:$i:1}"
-      sleep $delay
-      echo -ne "\b"
-    done
-  done
-  echo -n '  '
-}
-
-echo -e "${CYAN}Script : ${RESET}"
-echo -e "${CYAN}1. Update Repository${RESET}"
-echo -e "${CYAN}2. Update & Upgrade System${RESET}"
-echo -e "${CYAN}3. Install LXDE GUI${RESET}"
-echo -e "${CYAN}4. Install Dependencies${RESET}"
-echo -e "${CYAN}5. Install ZeroTier${RESET}"
-echo -e "${CYAN}6. Join Network ZeroTier${RESET}"
-echo -e "${CYAN}7. Install CasaOS${RESET}"
-echo -e "${CYAN}8. Change Network Interface to Static IP${RESET}"
-echo ""
-sleep 10
-clear
-
-# Adding repositories
-echo -e "${CYAN}Adding repositories...${RESET}"
-echo ""
-
-# List of repositories to add
-REPOSITORIES=(
-  "deb http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware"
-  "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware"
-  "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware"
-  "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware"
-  "deb http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware"
+# Repositories
+REPOS=(
+"http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware"
 )
 
-# Check if each repository is already added before adding
-for REPO in "${REPOSITORIES[@]}"; do
-  if ! grep -Fxq "$REPO" /etc/apt/sources.list; then
-    echo "$REPO" | sudo tee -a /etc/apt/sources.list
-    echo -e "${GREEN}Repository added: $REPO${RESET}"
-  else
-    echo -e "${YELLOW}Repository already exists: $REPO${RESET}"
-    if confirm_action "Do you want to add it again?"; then
-      echo "$REPO" | sudo tee -a /etc/apt/sources.list
-      echo -e "${GREEN}Repository added: $REPO${RESET}"
-    else
-      echo -e "${CYAN}Skipping repository addition: $REPO${RESET}"
-    fi
-  fi
-done
-sleep 5
-clear
+# Function to check and add repositories
+add_repositories() {
+    echo -e "${YELLOW}Checking and adding repositories...${RESET}"
+    for REPO in "${REPOS[@]}"; do
+        if grep -Fq "$REPO" /etc/apt/sources.list; then
+            echo -e "${CYAN}Repository already exists:${RESET} $REPO"
+            echo -e "${YELLOW}Do you want to re-add it? (y/n):${RESET}"
+            read -r response
+            if [[ "$response" =~ ^[yY](es|ES)?$ ]]; then
+                echo -e "${CYAN}Re-adding repository...${RESET}"
+                sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+            else
+                echo -e "${CYAN}Skipping repository: $REPO${RESET}"
+            fi
+        else
+            echo -e "${CYAN}Adding new repository:${RESET} $REPO"
+            sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+        fi
+    done
+}
 
-# Update repositories and install packages
-echo -e "${CYAN}Updating repositories...${RESET}"
-echo ""
-sudo apt-get update &
-loading_animation $!  # Run update in the background and show loading animation
+# Function to update progress bar
+progress_bar() {
+    local current=$1
+    local total=$2
+    local progress=$((100 * current / total))
+    local width=50 # Progress bar width
+
+    # Calculate completed and remaining parts
+    local completed=$((progress * width / 100))
+    local remaining=$((width - completed))
+
+    # Print progress bar (always on the last line of the terminal)
+    printf "\r[%-${width}s] %d%%" "$(printf "#%.0s" $(seq 1 $completed))" "$progress"
+}
+
+# Function for loading animation
+loading_animation() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    echo -n " "
+    while [ -d /proc/$pid ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+# Total steps (adjust based on your script)
+TOTAL_STEPS=10
+step=0
+
+clear
+echo -e "${CYAN}Starting script...${RESET}"
+
+# 1. Add Repositories
+((step++))
+echo -e "${YELLOW}1. Adding repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+add_repositories &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories checked and added successfully.${RESET}"
+
+# 2. Update Repositories
+((step++))
+echo -e "${YELLOW}2. Updating repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt update &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories updated successfully.${RESET}"
+
+# 3. Install ZeroTier
+((step++))
+echo -e "${YELLOW}3. Installing ZeroTier...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "zerotier-one"
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Repositories updated successfully.${RESET}"
+    echo -e "${YELLOW}ZeroTier is already installed. Skipping...${RESET}"
 else
-    echo -e "${RED}Failed to update repositories.${RESET}"
-    exit 1
-fi
-sleep 5
-clear
-
-# Update & Upgrade System
-echo -e "${CYAN}Updating and upgrading your system...${RESET}"
-echo ""
-sudo apt-get update && sudo apt-get upgrade -y &
-loading_animation $!  # Run upgrade in the background and show loading animation
-echo -e "${GREEN}Your system has been successfully updated and upgraded.${RESET}"
-sleep 5
-clear
-
-# Install LXDE GUI
-echo -e "${CYAN}Installing LXDE GUI...${RESET}"
-echo ""
-if confirm_action "Do you want to install LXDE GUI?"; then
-    sudo apt-get install -y lxde &
-    loading_animation $!  # Run LXDE installation in the background and show loading animation
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
-    else
-        echo -e "${RED}Failed to install LXDE GUI.${RESET}"
-    fi
-else
-    echo -e "${CYAN}Skipping LXDE GUI installation.${RESET}"
-fi
-sleep 5
-clear
-
-# Input for the list of packages to be installed
-echo -e "${YELLOW}Enter the packages you want to install (space-separated, e.g., curl vim git):${RESET}"
-read -r user_packages
-echo ""
-
-# Install user-specified packages with confirmation
-echo -e "${CYAN}Installing packages...${RESET}"
-echo ""
-for PACKAGE in $user_packages
-do
-    echo -e "${CYAN}Checking if $PACKAGE is already installed...${RESET}"
-    if dpkg -l | grep -q "$PACKAGE"; then
-        echo -e "${YELLOW}$PACKAGE is already installed.${RESET}"
-        if confirm_action "Do you want to reinstall $PACKAGE"; then
-            echo -e "${CYAN}Reinstalling $PACKAGE...${RESET}"
-            sudo apt-get install --reinstall -y $PACKAGE &
-            loading_animation $!  # Run installation in the background and show loading animation
-        else
-            echo -e "${CYAN}Skipping $PACKAGE installation.${RESET}"
-        fi
-    else
-        echo -e "${CYAN}Installing $PACKAGE...${RESET}"
-        sudo apt-get install -y $PACKAGE &
-        loading_animation $!  # Run installation in the background and show loading animation
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}$PACKAGE installed successfully.${RESET}"
-        else
-            echo -e "${RED}Failed to install $PACKAGE.${RESET}"
-        fi
-    fi
-done
-sleep 5
-clear
-
-# Install ZeroTier
-echo -e "${CYAN}Installing ZeroTier...${RESET}"
-echo ""
-if curl -s https://install.zerotier.com | sudo bash &> /dev/null &
-then
-    loading_animation $!  # Run installation in the background and show loading animation
+    sudo curl -s https://install.zerotier.com | sudo bash &> /dev/null &
+    loading_animation $!
     echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
-else
-    echo -e "${RED}ZeroTier installation failed.${RESET}"
 fi
-sleep 5
-clear
 
-# Join ZeroTier Network
-echo -e "${YELLOW}Enter your ZeroTier Network ID:${RESET}"
-read NETWORK_ID
-echo -e "${CYAN}Joining ZeroTier network with ID $NETWORK_ID...${RESET}"
-if sudo zerotier-cli join $NETWORK_ID &> /dev/null &
-then
-    loading_animation $!  # Show animation while joining network
-    echo -e "${GREEN}Successfully joined the network.${RESET}"
+# 4. Install CasaOS
+((step++))
+echo -e "${YELLOW}4. Installing CasaOS...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "casaos"
+if [ $? -eq 0 ]; then
+    echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
 else
-    echo -e "${RED}Failed to join the network.${RESET}"
-fi
-sleep 5
-clear
-
-# Install CasaOS
-echo -e "${CYAN}Installing CasaOS...${RESET}"
-echo ""
-if curl -fsSL https://get.casaos.io | bash &> /dev/null &
-then
-    loading_animation $!  # Run CasaOS installation in the background and show loading animation
+    curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
+    loading_animation $!
     echo -e "${GREEN}CasaOS installed successfully.${RESET}"
-else
-    echo -e "${RED}CasaOS installation failed.${RESET}"
 fi
-sleep 5
-clear
 
-# Input Static IP Address Configuration
-echo -e "${YELLOW}Configuring static IP address for your LAN interface...${RESET}"
+# 5. Install LXDE GUI
+((step++))
+echo -e "${YELLOW}5. Installing LXDE GUI...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "lxde"
+if [ $? -eq 0 ]; then
+    echo -e "${YELLOW}LXDE is already installed. Skipping...${RESET}"
+else
+    sudo apt install -y lxde &> /dev/null &
+    loading_animation $!
+    echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
+fi
+
+# 6. Configuring Static IP
+((step++))
+echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
+progress_bar $step $TOTAL_STEPS
 echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
 read -r interface_name
 echo -e "${YELLOW}Enter the static IP address (e.g., 192.168.1.100/24):${RESET}"
@@ -219,23 +142,11 @@ echo -e "${YELLOW}Enter the gateway (e.g., 192.168.1.1):${RESET}"
 read -r gateway
 echo -e "${YELLOW}Enter the DNS server (e.g., 8.8.8.8):${RESET}"
 read -r dns_server
-echo ""
 
-# Backup the original interfaces file
-sudo cp /etc/network/interfaces /etc/network/interfaces.bak
-
-# Write new static IP configuration to interfaces file
 sudo bash -c "cat > /etc/network/interfaces <<EOF
-# This file describes the network interfaces available on your system
-# and how to activate them. For more information, see interfaces(5).
-
-source /etc/network/interfaces.d/*
-
-# Loopback network interface
 auto lo
 iface lo inet loopback
 
-# Primary network interface
 auto $interface_name
 iface $interface_name inet static
     address $static_ip
@@ -243,23 +154,17 @@ iface $interface_name inet static
     dns-nameservers $dns_server
 EOF"
 
-# Restart networking service to apply changes
-echo -e "${CYAN}Restarting networking service to apply changes...${RESET}"
 sudo systemctl restart networking
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Static IP address successfully configured for $interface_name.${RESET}"
-    echo -e "${CYAN}New IP Address: $static_ip${RESET}"
+echo -e "${GREEN}Static IP address configured successfully.${RESET}"
 
-    # Display the actions taken
-    echo -e "${CYAN}Summary of actions performed:${RESET}"
-    echo -e "${CYAN}1. Repositories updated.${RESET}"
-    echo -e "${CYAN}2. System updated and upgraded.${RESET}"
-    echo -e "${CYAN}3. LXDE GUI installed.${RESET}"
-    echo -e "${CYAN}4. Packages installed: $user_packages${RESET}"
-    echo -e "${CYAN}5. ZeroTier installed and network joined.${RESET}"
-    echo -e "${CYAN}6. CasaOS installed.${RESET}"
-    echo -e "${CYAN}7. Static IP configured.${RESET}"
+# 7. Upgrade System
+((step++))
+echo -e "${YELLOW}7. Upgrading system...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt upgrade -y &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}System upgraded successfully.${RESET}"
 
-else
-    echo -e "${RED}Failed to apply static IP configuration. Please check your settings.${RESET}"
-fi
+# Final progress
+progress_bar $TOTAL_STEPS $TOTAL_STEPS
+echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
