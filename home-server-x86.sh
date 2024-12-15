@@ -38,11 +38,11 @@ clear
 echo -e "${CYAN}Adding repositories...${RESET}"
 echo ""
 
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware" | tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware" | tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware" | tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware" | tee -a /etc/apt/sources.list
-echo "deb http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware" | tee -a /etc/apt/sources.list
+echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
+echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
+echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
+echo "deb http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
+echo "deb http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
 sleep 5
 clear
 
@@ -51,7 +51,7 @@ echo -e "${CYAN}Updating repositories...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for apt update
-apt-get update | dialog --title "Updating Repositories" --gauge "Please wait while repositories are being updated..." 10 60 0
+sudo apt-get update | dialog --title "Updating Repositories" --gauge "Please wait while repositories are being updated..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Repositories updated successfully.${RESET}"
 else
@@ -66,7 +66,7 @@ echo -e "${CYAN}Updating and upgrading your system...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for apt upgrade
-apt-get upgrade -y | dialog --title "Updating & Upgrading" --gauge "Upgrading the system, please wait..." 10 60 0
+sudo apt-get upgrade -y | dialog --title "Updating & Upgrading" --gauge "Upgrading the system, please wait..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Your system has been successfully updated and upgraded.${RESET}"
 else
@@ -81,7 +81,7 @@ echo -e "${CYAN}Installing LXDE GUI...${RESET}"
 echo ""
 
 # Progress bar with `dialog` for LXDE installation
-apt-get install -y lxde | dialog --title "Installing LXDE" --gauge "Installing LXDE GUI, please wait..." 10 60 0
+sudo apt-get install -y lxde | dialog --title "Installing LXDE" --gauge "Installing LXDE GUI, please wait..." 10 60 0
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}LXDE GUI installed successfully.${RESET}"
 else
@@ -93,7 +93,7 @@ clear
 
 # Set LXDE as the default GUI for booting
 echo -e "${CYAN}Setting LXDE as the default GUI...${RESET}"
-if systemctl set-default graphical.target && systemctl isolate graphical.target; then
+if sudo systemctl set-default graphical.target && sudo systemctl isolate graphical.target; then
     echo -e "${GREEN}LXDE set as the default GUI successfully.${RESET}"
 else
     echo -e "${RED}Failed to set LXDE as the default GUI.${RESET}"
