@@ -148,35 +148,35 @@ echo ""
 ((step++))
 echo -e "${YELLOW}5. Installing ZeroTier...${RESET}"
 progress_bar $step $TOTAL_STEPS
-dpkg -l | grep -qw "zerotier-one"
-if [ $? -eq 0 ]; then
-    echo -e "${YELLOW}ZeroTier is already installed. Skipping...${RESET}"
-else
+
+if ! dpkg -l | grep -qw "zerotier-one"; then
     sudo curl -s https://install.zerotier.com | sudo bash &> /dev/null &
     loading_animation $!
     echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
-fi
-
-# Prompt for ZeroTier Network ID
-echo ""
-echo -e "${YELLOW}Enter your ZeroTier Network ID to join the network:${RESET}"
-read -p "Network ID: " NETWORK_ID
-
-if [[ -n "$NETWORK_ID" ]]; then
-    echo -e "${YELLOW}Joining ZeroTier network with ID $NETWORK_ID...${RESET}"
-    sudo zerotier-cli join $NETWORK_ID &> /dev/null &
-    loading_animation $!
     
-    # Check if joining the network was successful
-    sudo zerotier-cli listnetworks | grep -qw "$NETWORK_ID"
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}Successfully joined the ZeroTier network with ID $NETWORK_ID.${RESET}"
+    # Prompt for ZeroTier Network ID
+    echo ""
+    echo -e "${YELLOW}Enter your ZeroTier Network ID to join the network:${RESET}"
+    read -p "Network ID: " NETWORK_ID
+    
+    if [[ -n "$NETWORK_ID" ]]; then
+        echo -e "${YELLOW}Joining ZeroTier network with ID $NETWORK_ID...${RESET}"
+        sudo zerotier-cli join "$NETWORK_ID" &> /dev/null &
+        loading_animation $!
+        
+        # Check if joining the network was successful
+        if sudo zerotier-cli listnetworks | grep -qw "$NETWORK_ID"; then
+            echo -e "${GREEN}Successfully joined the ZeroTier network with ID $NETWORK_ID.${RESET}"
+        else
+            echo -e "${RED}Failed to join the ZeroTier network. Please check the Network ID and try again.${RESET}"
+        fi
     else
-        echo -e "${RED}Failed to join the ZeroTier network. Please check the Network ID and try again.${RESET}"
+        echo -e "${RED}No Network ID provided. Skipping ZeroTier network join.${RESET}"
     fi
 else
-    echo -e "${RED}No Network ID provided. Skipping ZeroTier network join.${RESET}"
+    echo -e "${YELLOW}ZeroTier is already installed. Skipping installation and network join.${RESET}"
 fi
+
 
 # 6. Install CasaOS
 echo ""
