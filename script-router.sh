@@ -1,161 +1,65 @@
 #!/bin/bash
 
-clear
-
-# Colors for output
-GREEN="\e[32m"
-CYAN="\e[36m"
-YELLOW="\e[33m"
-RED="\e[31m"
-RESET="\e[0m"
-
-# Repositories
-REPOS=(
-"http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware"
-"http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware"
-"http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware"
-"http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware"
-"http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware"
-)
-
-# Function to check and add repositories
-add_repositories() {
-    echo -e "${YELLOW}Checking and adding repositories...${RESET}"
-    for REPO in "${REPOS[@]}"; do
-        if grep -Fq "$REPO" /etc/apt/sources.list; then
-            echo -e "${CYAN}Repository already exists:${RESET} $REPO"
-            echo -e "${YELLOW}Do you want to re-add it? (y/n):${RESET}"
-            read -r response
-            if [[ "$response" =~ ^[yY](es|ES)?$ ]]; then
-                echo -e "${CYAN}Re-adding repository...${RESET}"
-                sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
-            else
-                echo -e "${CYAN}Skipping repository: $REPO${RESET}"
-            fi
-        else
-            echo -e "${CYAN}Adding new repository:${RESET} $REPO"
-            sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
-        fi
-    done
+# Fungsi loading screen
+loading() {
+  local duration=$1
+  local message=$2
+  echo -n "$message"
+  for i in $(seq 1 $duration); do
+    echo -n "."
+    sleep 1
+  done
+  echo " Done!"
 }
 
-# Function to update progress bar
-progress_bar() {
-    local current=$1
-    local total=$2
-    local progress=$((100 * current / total))
-    local width=50 # Progress bar width
+# Update dan upgrade paket
+loading 3 "Memperbarui paket"
+sudo apt update && sudo apt upgrade -y
 
-    # Calculate completed and remaining parts
-    local completed=$((progress * width / 100))
-    local remaining=$((width - completed))
+# Install paket dasar
+loading 3 "Menginstal paket dasar"
+sudo apt install -y git curl wget unzip vim dnsmasq iptables cockpit
 
-    # Print progress bar (always on the last line of the terminal)
-    printf "\r[%-${width}s] %d%%" "$(printf "#%.0s" $(seq 1 $completed))" "$progress"
-}
+# Enable dan start Cockpit
+loading 3 "Mengaktifkan Cockpit"
+sudo systemctl enable --now cockpit
 
-# Function for loading animation
-loading_animation() {
-    local pid=$1
-    local delay=0.1
-    local spinstr='|/-\' 
-    echo -n " "
-    while [ -d /proc/$pid ]; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
-}
+# Enable IP Forwarding
+loading 2 "Mengaktifkan IP Forwarding"
+echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
 
-# Total steps (adjust based on your script)
-TOTAL_STEPS=5 # Updated to 5 steps as no GUI installation
-step=0
+# Konfigurasi DNSMasq
+loading 2 "Mengonfigurasi DNSMasq"
+cat <<EOF | sudo tee /etc/dnsmasq.conf
+interface=eth0  # Interface untuk jaringan lokal
+dhcp-range=192.168.1.100,192.168.1.200,24h
+EOF
+sudo systemctl restart dnsmasq
 
-clear
-echo -e "${CYAN}Starting script...${RESET}"
-echo""
-echo ""
+# Setup NAT (Network Address Translation)
+loading 2 "Mengatur NAT dengan iptables"
+sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+sudo iptables-save | sudo tee /etc/iptables/rules.v4
 
-# 1. Add Repositories
-((step++))
-echo -e "${YELLOW}1. Adding repositories...${RESET}"
-progress_bar $step $TOTAL_STEPS
-add_repositories &> /dev/null &
-loading_animation $!
-echo -e "${GREEN}Repositories checked and added successfully.${RESET}"
+# Install ZeroTier
+loading 3 "Menginstal ZeroTier"
+curl -s https://install.zerotier.com | sudo bash
+sudo systemctl enable zerotier-one
+sudo systemctl start zerotier-one
 
-# 2. Update Repositories
-echo ""
-((step++))
-echo -e "${YELLOW}2. Updating repositories...${RESET}"
-progress_bar $step $TOTAL_STEPS
-sudo apt update &> /dev/null &
-loading_animation $!
-echo -e "${GREEN}Repositories updated successfully.${RESET}"
+# Tambahkan informasi ZeroTier
+read -p "Masukkan NETWORK_ID ZeroTier: " NETWORK_ID
+loading 2 "Bergabung ke jaringan ZeroTier"
+sudo zerotier-cli join $NETWORK_ID
 
-# 3. Install Additional Packages
-echo ""
-((step++))
-echo -e "${YELLOW}3. Installing additional packages...${RESET}"
-progress_bar $step $TOTAL_STEPS
-sudo apt install -y curl gnupg lsb-release
-echo -e "${CYAN}Enter packages to install (separate with spaces):${RESET}"
-read -r packages
-sudo apt install -y $packages &> /dev/null &
-loading_animation $!
-echo -e "${GREEN}Additional packages installed successfully.${RESET}"
+# Install CasaOS
+loading 3 "Menginstal CasaOS"
+curl -fsSL https://get.casaos.io | sudo bash
 
-# 4. Install ZeroTier
-echo ""
-((step++))
-echo -e "${YELLOW}4. Installing ZeroTier...${RESET}"
-progress_bar $step $TOTAL_STEPS
-dpkg -l | grep -qw "zerotier-one"
-if [ $? -eq 0 ]; then
-    echo -e "${YELLOW}ZeroTier is already installed. Skipping...${RESET}"
-else
-    sudo curl -s https://install.zerotier.com | sudo bash &> /dev/null &
-    loading_animation $!
-    echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
-fi
-
-# 5. Configuring Static IP
-echo ""
-((step++))
-echo -e "${YELLOW}5. Configuring static IP address...${RESET}"
-progress_bar $step $TOTAL_STEPS
-echo""
-
-ifconfig
-
-echo""
-echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
-read -r interface_name
-echo -e "${YELLOW}Enter the static IP address (e.g., 192.168.1.100/24):${RESET}"
-read -r static_ip
-echo -e "${YELLOW}Enter the gateway (e.g., 192.168.1.1):${RESET}"
-read -r gateway
-echo -e "${YELLOW}Enter the DNS server (e.g., 8.8.8.8):${RESET}"
-read -r dns_server
-
-sudo bash -c "cat > /etc/network/interfaces <<EOF
-auto lo
-iface lo inet loopback
-
-auto $interface_name
-iface $interface_name inet static
-    address $static_ip
-    gateway $gateway
-    dns-nameservers $dns_server
-EOF"
-
-sudo systemctl restart networking
-echo -e "${GREEN}Static IP address configured successfully.${RESET}"
-
-# Final progress (without including it in the total steps)
-echo ""
-progress_bar $TOTAL_STEPS $TOTAL_STEPS
-echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
+# Pesan selesai
+echo "======================================"
+echo "Instalasi selesai!"
+echo "Akses GUI Cockpit di http://<IP_OrangePi>:9090"
+echo "Akses GUI CasaOS di http://<IP_OrangePi>:80"
+echo "======================================"
