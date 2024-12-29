@@ -1,141 +1,201 @@
 #!/bin/bash
 
-set -e
+clear
 
-# Function to check if a package is already installed
-is_installed() {
-  dpkg -l | grep -qw "$1"
-}
+# Colors for output
+GREEN="\e[32m"
+CYAN="\e[36m"
+YELLOW="\e[33m"
+RED="\e[31m"
+RESET="\e[0m"
 
-# Function to check if a line exists in a file
-line_exists() {
-  grep -qxF "$1" "$2"
-}
-
-# Checking if Webmin repository and GPG key are added
-echo "Checking Webmin repository and GPG key..."
-
-# Webmin GPG Key and Repository
-WEBMIN_REPO="deb http://download.webmin.com/download/repository sarge contrib"
-if ! apt-key list | grep -q "Webmin"; then
-  echo "Adding Webmin GPG key..."
-  wget -qO - http://www.webmin.com/jcameron-key.asc | sudo apt-key add -
-else
-  echo "Webmin GPG key already added, skipping..."
-fi
-
-if ! line_exists "$WEBMIN_REPO" /etc/apt/sources.list; then
-  echo "Adding Webmin repository..."
-  echo "$WEBMIN_REPO" | sudo tee -a /etc/apt/sources.list
-else
-  echo "Webmin repository already exists, skipping..."
-fi
-
-# Main, updates, and security repositories
-DEBIAN_REPO="deb http://kartolo.sby.datautama.net.id/debian bookworm main"
-DEBIAN_UPDATES_REPO="deb http://kartolo.sby.datautama.net.id/debian bookworm-updates main"
-DEBIAN_SECURITY_REPO="deb http://kartolo.sby.datautama.net.id/debian-security bookworm-security main"
-
-if ! line_exists "$DEBIAN_REPO" /etc/apt/sources.list; then
-  echo "Adding main repository..."
-  echo "$DEBIAN_REPO" | sudo tee -a /etc/apt/sources.list
-else
-  echo "Main repository already exists, skipping..."
-fi
-
-if ! line_exists "$DEBIAN_UPDATES_REPO" /etc/apt/sources.list; then
-  echo "Adding updates repository..."
-  echo "$DEBIAN_UPDATES_REPO" | sudo tee -a /etc/apt/sources.list
-else
-  echo "Updates repository already exists, skipping..."
-fi
-
-if ! line_exists "$DEBIAN_SECURITY_REPO" /etc/apt/sources.list; then
-  echo "Adding security repository..."
-  echo "$DEBIAN_SECURITY_REPO" | sudo tee -a /etc/apt/sources.list
-else
-  echo "Security repository already exists, skipping..."
-fi
-
-# Update and upgrade the system
-echo "Updating and upgrading system..."
-sudo apt update && sudo apt upgrade -y
-
-# Install required packages
-REQUIRED_PACKAGES=(
-  net-tools iproute2 iptables iptables-persistent dnsutils curl wget unzip \
-  bridge-utils hostapd isc-dhcp-server sudo vim git build-essential webmin
+# Repositories
+REPOS=(
+"http://kartolo.sby.datautama.net.id/debian/ bookworm contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-proposed-updates contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian/ bookworm-backports contrib main non-free non-free-firmware"
+"http://kartolo.sby.datautama.net.id/debian-security/ bookworm-security contrib main non-free non-free-firmware"
 )
 
-for package in "${REQUIRED_PACKAGES[@]}"; do
-  if is_installed "$package"; then
-    echo "Package $package is already installed, skipping..."
-  else
-    echo "Installing package $package..."
-    sudo apt install -y "$package"
-  fi
-done
+# Function to check and add repositories
+add_repositories() {
+    echo -e "${YELLOW}Checking and adding repositories...${RESET}"
+    for REPO in "${REPOS[@]}"; do
+        if grep -Fq "$REPO" /etc/apt/sources.list; then
+            echo -e "${CYAN}Repository already exists:${RESET} $REPO"
+            echo -e "${YELLOW}Do you want to re-add it? (y/n):${RESET}"
+            read -r response
+            if [[ "$response" =~ ^[yY](es|ES)?$ ]]; then
+                echo -e "${CYAN}Re-adding repository...${RESET}"
+                sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+            else
+                echo -e "${CYAN}Skipping repository: $REPO${RESET}"
+            fi
+        else
+            echo -e "${CYAN}Adding new repository:${RESET} $REPO"
+            sudo bash -c "echo '$REPO' >> /etc/apt/sources.list"
+        fi
+    done
+}
 
-# Install ZeroTier if not already installed
-if is_installed "zerotier-one"; then
-  echo "ZeroTier is already installed, skipping..."
+# Function to update progress bar
+progress_bar() {
+    local current=$1
+    local total=$2
+    local progress=$((100 * current / total))
+    local width=50 # Progress bar width
+
+    # Calculate completed and remaining parts
+    local completed=$((progress * width / 100))
+    local remaining=$((width - completed))
+
+    # Print progress bar (always on the last line of the terminal)
+    printf "\r[%-${width}s] %d%%" "$(printf "#%.0s" $(seq 1 $completed))" "$progress"
+}
+
+# Function for loading animation
+loading_animation() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\' 
+    echo -n " "
+    while [ -d /proc/$pid ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+# Total steps (adjust based on your script)
+TOTAL_STEPS=6 # Updated to 6 to exclude final progress
+step=0
+
+clear
+echo -e "${CYAN}Starting script...${RESET}"
+echo""
+echo ""
+
+# 1. Add Repositories
+((step++))
+echo -e "${YELLOW}1. Adding repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+add_repositories &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories checked and added successfully.${RESET}"
+
+# 2. Update Repositories
+echo ""
+((step++))
+echo -e "${YELLOW}2. Updating repositories...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt update &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Repositories updated successfully.${RESET}"
+
+# 3. Install Additional Packages
+echo ""
+((step++))
+echo -e "${YELLOW}3. Installing additional packages...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt install -y curl gnupg lsb-release
+echo -e "${CYAN}Enter packages to install (separate with spaces):${RESET}"
+read -r packages
+sudo apt install -y $packages &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}Additional packages installed successfully.${RESET}"
+
+# 4. Install ZeroTier
+echo ""
+((step++))
+echo -e "${YELLOW}4. Installing ZeroTier...${RESET}"
+progress_bar $step $TOTAL_STEPS
+dpkg -l | grep -qw "zerotier-one"
+if [ $? -eq 0 ]; then
+    echo -e "${YELLOW}ZeroTier is already installed. Skipping...${RESET}"
 else
-  echo "Installing ZeroTier..."
-  curl -s https://install.zerotier.com | sudo bash
-
-  # Prompt for ZeroTier Network ID
-  echo "Enter your ZeroTier Network ID: "
-  read ZT_NETWORK_ID
-  sudo zerotier-cli join "$ZT_NETWORK_ID"
-  echo "Joined ZeroTier network $ZT_NETWORK_ID."
+    sudo curl -s https://install.zerotier.com | sudo bash &> /dev/null &
+    loading_animation $!
+    echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
 fi
 
-# Ensure ZeroTier starts on boot
-if sudo systemctl is-enabled zerotier-one; then
-  echo "ZeroTier is already enabled to start on boot, skipping..."
+# 5. Install CasaOS
+echo ""
+((step++))
+echo -e "${YELLOW}5. Installing CasaOS...${RESET}"
+progress_bar $step $TOTAL_STEPS
+if command -v casaos &> /dev/null || [ -f "/usr/bin/casaos" ] || [ -d "/etc/casaos" ]; then
+    echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
 else
-  echo "Enabling ZeroTier to start on boot..."
-  sudo systemctl enable zerotier-one
+    echo -e "${CYAN}CasaOS is not installed. Do you want to install it? (y/n)${RESET}"
+    read -p "Your choice: " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        echo -e "${CYAN}Installing CasaOS...${RESET}"
+        curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
+        loading_animation $!
+        echo -e "${GREEN}CasaOS installed successfully.${RESET}"
+    else
+        echo -e "${YELLOW}Skipped CasaOS installation.${RESET}"
+    fi
 fi
 
-# Check if CasaOS is installed
-if [ -d "/usr/lib/casaOS" ] || [ -f "/usr/bin/casaos" ]; then
-  echo "CasaOS is already installed, skipping..."
+# 6. Configuring Static IP
+echo ""
+((step++))
+echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
+progress_bar $step $TOTAL_STEPS
+echo""
+
+ifconfig
+
+echo""
+echo -e "${YELLOW}Enter the interface name (e.g., eth0 or wlan0):${RESET}"
+read -r interface_name
+echo -e "${YELLOW}Enter the static IP address (e.g., 192.168.1.100/24):${RESET}"
+read -r static_ip
+echo -e "${YELLOW}Enter the gateway (e.g., 192.168.1.1):${RESET}"
+read -r gateway
+echo -e "${YELLOW}Enter the DNS server (e.g., 8.8.8.8):${RESET}"
+read -r dns_server
+
+sudo bash -c "cat > /etc/network/interfaces <<EOF
+auto lo
+iface lo inet loopback
+
+auto $interface_name
+iface $interface_name inet static
+    address $static_ip
+    gateway $gateway
+    dns-nameservers $dns_server
+EOF"
+
+sudo systemctl restart networking
+echo -e "${GREEN}Static IP address configured successfully.${RESET}"
+
+# 7. Upgrade System
+((step++))
+echo ""
+echo -e "${YELLOW}7. Upgrading system...${RESET}"
+progress_bar $step $TOTAL_STEPS
+sudo apt upgrade -y &> /dev/null &
+loading_animation $!
+echo -e "${GREEN}System upgraded successfully.${RESET}"
+
+# Final progress (without including it in the total steps)
+echo ""
+progress_bar $TOTAL_STEPS $TOTAL_STEPS
+echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
+
+# Reboot Prompt
+echo ""
+echo -e "${YELLOW}Do you want to reboot the system now? (y/n):${RESET}"
+read -r reboot_choice
+if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
+    echo -e "${CYAN}Rebooting...${RESET}"
+    sudo reboot
 else
-  echo "Installing CasaOS..."
-  curl -fsSL https://get.casaos.io | sudo bash
+    echo -e "${CYAN}Reboot skipped. Please reboot the system later. ${RESET}"
 fi
-
-# Enable IP forwarding for router functionality if not already done
-if grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
-  echo "IP forwarding already enabled, skipping..."
-else
-  echo "Enabling IP forwarding..."
-  echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-  sudo sysctl -p
-fi
-
-# Configure iptables NAT if not already configured
-if sudo iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null; then
-  echo "iptables NAT rule already exists, skipping..."
-else
-  echo "Adding iptables NAT rule..."
-  sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  # Save iptables rules without prompting
-  sudo iptables-save > /etc/iptables/rules.v4
-fi
-
-# Install iptables-persistent without interactive prompts
-if ! is_installed "iptables-persistent"; then
-  echo "Installing iptables-persistent without interactive prompts..."
-  sudo DEBIAN_FRONTEND=noninteractive apt install -y iptables-persistent
-fi
-
-# Restart other services to ensure they are running
-sudo systemctl restart zerotier-one
-sudo systemctl restart webmin
-
-echo "\n--- Setup complete! ---"
-echo "Router, ZeroTier, CasaOS, and Webmin have been installed and configured."
-echo "Ensure ZeroTier has joined the network and configure the DHCP server as needed."
-echo "Access the web GUI using your browser at https://<your-server-ip>:10000."
