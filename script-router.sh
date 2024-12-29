@@ -122,7 +122,8 @@ if sudo iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null; then
 else
   echo "Adding iptables NAT rule..."
   sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  sudo iptables-save | sudo tee /etc/iptables/rules.v4
+  sudo iptables-save > /etc/iptables/rules.v4
+  echo "iptables rules saved to /etc/iptables/rules.v4"
 fi
 
 # Restart other services to ensure they are running
