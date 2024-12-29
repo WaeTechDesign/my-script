@@ -7,7 +7,21 @@ is_installed() {
   dpkg -l | grep -qw "$1"
 }
 
-# Add repositories if not already present
+# Check if the Webmin GPG key is already added
+if ! apt-key list | grep -q "Webmin"; then
+  echo "Adding Webmin GPG key..."
+  wget -qO - http://www.webmin.com/jcameron-key.asc | sudo apt-key add -
+else
+  echo "Webmin GPG key already added, skipping..."
+fi
+
+# Add Webmin repository if not already present
+if ! grep -q "deb http://download.webmin.com/download/repository sarge contrib" /etc/apt/sources.list; then
+  echo "Adding Webmin repository..."
+  echo "deb http://download.webmin.com/download/repository sarge contrib" >> /etc/apt/sources.list
+fi
+
+# Add main, updates, and security repositories
 if ! grep -q "deb http://kartolo.sby.datautama.net.id/debian bookworm main" /etc/apt/sources.list; then
   echo "Adding main repository..."
   echo "deb http://kartolo.sby.datautama.net.id/debian bookworm main" >> /etc/apt/sources.list
@@ -22,13 +36,6 @@ if ! grep -q "deb http://kartolo.sby.datautama.net.id/debian-security bookworm-s
   echo "Adding security repository..."
   echo "deb http://kartolo.sby.datautama.net.id/debian-security bookworm-security main" >> /etc/apt/sources.list
 fi
-
-# Add Webmin repository
-echo "Adding Webmin repository..."
-echo "deb http://download.webmin.com/download/repository sarge contrib" >> /etc/apt/sources.list
-
-# Add the Webmin GPG key
-wget -qO - http://www.webmin.com/jcameron-key.asc | sudo apt-key add -
 
 # Update and upgrade the system
 apt update && apt upgrade -y
@@ -108,17 +115,31 @@ for ((i=1; i<=NUM_INTERFACES; i++)); do
   # Configure the interface with the static IP
   ip addr add $IP_ADDRESS dev $INTERFACE_NAME
   ip link set $INTERFACE_NAME up
-
-  # Configure DHCP for the interface
-  echo "subnet ${IP_ADDRESS%.*}.0 netmask 255.255.255.0 {" >> /etc/dhcp/dhcpd.conf
-  echo "  range ${IP_ADDRESS%.*}.10 ${IP_ADDRESS%.*}.100;" >> /etc/dhcp/dhcpd.conf
-  echo "  option routers $IP_ADDRESS;" >> /etc/dhcp/dhcpd.conf
-  echo "}" >> /etc/dhcp/dhcpd.conf
 done
 
-# Restart services to ensure they are running
+# Ask if DHCP should be enabled for each interface
+echo "Do you want to enable DHCP for the interfaces configured above? (yes/no)"
+read ENABLE_DHCP
+
+if [ "$ENABLE_DHCP" == "yes" ]; then
+  # Configure DHCP for each interface
+  for ((i=1; i<=NUM_INTERFACES; i++)); do
+    echo "Configuring DHCP for interface #$i..."
+    echo "subnet ${IP_ADDRESS%.*}.0 netmask 255.255.255.0 {" >> /etc/dhcp/dhcpd.conf
+    echo "  range ${IP_ADDRESS%.*}.10 ${IP_ADDRESS%.*}.100;" >> /etc/dhcp/dhcpd.conf
+    echo "  option routers $IP_ADDRESS;" >> /etc/dhcp/dhcpd.conf
+    echo "}" >> /etc/dhcp/dhcpd.conf
+  done
+
+  # Restart DHCP server to apply the configuration
+  systemctl restart isc-dhcp-server
+  echo "DHCP server enabled and configured."
+else
+  echo "DHCP server will not be enabled."
+fi
+
+# Restart other services to ensure they are running
 systemctl restart zerotier-one
-systemctl restart isc-dhcp-server
 systemctl restart webmin
 
 echo "\n--- Setup complete! ---"
