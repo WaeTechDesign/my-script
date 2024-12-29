@@ -90,7 +90,6 @@ else
   echo "Joined ZeroTier network $ZT_NETWORK_ID."
 fi
 
-
 # Ensure ZeroTier starts on boot
 if sudo systemctl is-enabled zerotier-one; then
   echo "ZeroTier is already enabled to start on boot, skipping..."
@@ -116,19 +115,20 @@ else
   sudo sysctl -p
 fi
 
-# Install iptables-persistent without interactive prompts
-if ! is_installed "iptables-persistent"; then
-  echo "Installing iptables-persistent without interactive prompts..."
-  sudo DEBIAN_FRONTEND=noninteractive apt install -y iptables-persistent
-fi
-
 # Configure iptables NAT if not already configured
 if sudo iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null; then
   echo "iptables NAT rule already exists, skipping..."
 else
   echo "Adding iptables NAT rule..."
   sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  sudo iptables-save | sudo tee /etc/iptables/rules.v4
+  # Save iptables rules without prompting
+  sudo iptables-save > /etc/iptables/rules.v4
+fi
+
+# Install iptables-persistent without interactive prompts
+if ! is_installed "iptables-persistent"; then
+  echo "Installing iptables-persistent without interactive prompts..."
+  sudo DEBIAN_FRONTEND=noninteractive apt install -y iptables-persistent
 fi
 
 # Restart other services to ensure they are running
