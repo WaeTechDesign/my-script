@@ -23,12 +23,18 @@ if ! grep -q "deb http://kartolo.sby.datautama.net.id/debian-security bookworm-s
   echo "deb http://kartolo.sby.datautama.net.id/debian-security bookworm-security main" >> /etc/apt/sources.list
 fi
 
+# Add Webmin repository
+echo "Adding Webmin repository..."
+echo "deb http://download.webmin.com/download/repository sarge contrib" >> /etc/apt/sources.list
+
+# Add the Webmin GPG key
+wget -qO - http://www.webmin.com/jcameron-key.asc | sudo apt-key add -
 
 # Update and upgrade the system
 apt update && apt upgrade -y
 
 # Install required packages
-REQUIRED_PACKAGES=(
+REQUIRED_PACKAGES=( 
   net-tools iproute2 iptables iptables-persistent dnsutils curl wget unzip \
   bridge-utils hostapd isc-dhcp-server sudo vim git build-essential webmin
 )
@@ -108,7 +114,6 @@ for ((i=1; i<=NUM_INTERFACES; i++)); do
   echo "  range ${IP_ADDRESS%.*}.10 ${IP_ADDRESS%.*}.100;" >> /etc/dhcp/dhcpd.conf
   echo "  option routers $IP_ADDRESS;" >> /etc/dhcp/dhcpd.conf
   echo "}" >> /etc/dhcp/dhcpd.conf
-
 done
 
 # Restart services to ensure they are running
