@@ -71,7 +71,7 @@ loading_animation() {
 }
 
 # Total steps (adjust based on your script)
-TOTAL_STEPS=6 # Updated to 6 to exclude final progress
+TOTAL_STEPS=5 # Updated to 5 steps as no GUI installation
 step=0
 
 clear
@@ -122,30 +122,10 @@ else
     echo -e "${GREEN}ZeroTier installed successfully.${RESET}"
 fi
 
-# 5. Install CasaOS
+# 5. Configuring Static IP
 echo ""
 ((step++))
-echo -e "${YELLOW}5. Installing CasaOS...${RESET}"
-progress_bar $step $TOTAL_STEPS
-if command -v casaos &> /dev/null || [ -f "/usr/bin/casaos" ] || [ -d "/etc/casaos" ]; then
-    echo -e "${YELLOW}CasaOS is already installed. Skipping...${RESET}"
-else
-    echo -e "${CYAN}CasaOS is not installed. Do you want to install it? (y/n)${RESET}"
-    read -p "Your choice: " choice
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-        echo -e "${CYAN}Installing CasaOS...${RESET}"
-        curl -fsSL https://get.casaos.io | sudo bash &> /dev/null &
-        loading_animation $!
-        echo -e "${GREEN}CasaOS installed successfully.${RESET}"
-    else
-        echo -e "${YELLOW}Skipped CasaOS installation.${RESET}"
-    fi
-fi
-
-# 6. Configuring Static IP
-echo ""
-((step++))
-echo -e "${YELLOW}6. Configuring static IP address...${RESET}"
+echo -e "${YELLOW}5. Configuring static IP address...${RESET}"
 progress_bar $step $TOTAL_STEPS
 echo""
 
@@ -174,15 +154,6 @@ EOF"
 
 sudo systemctl restart networking
 echo -e "${GREEN}Static IP address configured successfully.${RESET}"
-
-# 7. Upgrade System
-((step++))
-echo ""
-echo -e "${YELLOW}7. Upgrading system...${RESET}"
-progress_bar $step $TOTAL_STEPS
-sudo apt upgrade -y &> /dev/null &
-loading_animation $!
-echo -e "${GREEN}System upgraded successfully.${RESET}"
 
 # Final progress (without including it in the total steps)
 echo ""
