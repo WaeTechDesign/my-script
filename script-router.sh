@@ -159,14 +159,3 @@ echo -e "${GREEN}Static IP address configured successfully.${RESET}"
 echo ""
 progress_bar $TOTAL_STEPS $TOTAL_STEPS
 echo -e "\n${CYAN}All tasks completed successfully!${RESET}"
-
-# Reboot Prompt
-echo ""
-echo -e "${YELLOW}Do you want to reboot the system now? (y/n):${RESET}"
-read -r reboot_choice
-if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
-    echo -e "${CYAN}Rebooting...${RESET}"
-    sudo reboot
-else
-    echo -e "${CYAN}Reboot skipped. Please reboot the system later. ${RESET}"
-fi
