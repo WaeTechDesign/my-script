@@ -83,10 +83,11 @@ else
   echo "Installing ZeroTier..."
   curl -s https://install.zerotier.com | sudo bash
 
-echo "Enter your ZeroTier Network ID: "
-read ZT_NETWORK_ID
-sudo zerotier-cli join "$ZT_NETWORK_ID"
-echo "Joined ZeroTier network $ZT_NETWORK_ID."
+  # Prompt for ZeroTier Network ID
+  echo "Enter your ZeroTier Network ID: "
+  read ZT_NETWORK_ID
+  sudo zerotier-cli join "$ZT_NETWORK_ID"
+  echo "Joined ZeroTier network $ZT_NETWORK_ID."
 fi
 
 
