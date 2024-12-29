@@ -1,65 +1,100 @@
 #!/bin/bash
 
-# Fungsi loading screen
-loading() {
-  local duration=$1
-  local message=$2
-  echo -n "$message"
-  for i in $(seq 1 $duration); do
-    echo -n "."
-    sleep 1
-  done
-  echo " Done!"
-}
+set -e
 
-# Update dan upgrade paket
-loading 3 "Memperbarui paket"
-sudo apt update && sudo apt upgrade -y
+echo "Memulai konfigurasi Orange Pi 3B v2.1 sebagai router dengan Webmin..."
 
-# Install paket dasar
-loading 3 "Menginstal paket dasar"
-sudo apt install -y git curl wget unzip vim dnsmasq iptables cockpit
+# Update dan install dependencies
+echo "Memperbarui paket dan menginstal dependensi..."
+apt update && apt upgrade -y
+apt install -y net-tools neofetch isc-dhcp-server iptables-persistent ufw curl
 
-# Enable dan start Cockpit
-loading 3 "Mengaktifkan Cockpit"
-sudo systemctl enable --now cockpit
+# Konfigurasi interfaces tanpa mengubah end1 (WAN) terlebih dahulu
+echo "Mengatur konfigurasi jaringan awal..."
+cat <<EOF > /etc/network/interfaces
+# WLAN (Access Point)
+auto wlan0
+iface wlan0 inet static
+    address 192.168.1.1
+    netmask 255.255.255.0
+    network 192.168.1.0
+    broadcast 192.168.1.255
+    post-up iw dev wlan0 set type nl80211
+    post-up ip link set wlan0 up
 
-# Enable IP Forwarding
-loading 2 "Mengaktifkan IP Forwarding"
-echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
+# USBtoLAN1
+auto enx207bd27e966e
+iface enx207bd27e966e inet dhcp
 
-# Konfigurasi DNSMasq
-loading 2 "Mengonfigurasi DNSMasq"
-cat <<EOF | sudo tee /etc/dnsmasq.conf
-interface=eth0  # Interface untuk jaringan lokal
-dhcp-range=192.168.1.100,192.168.1.200,24h
+# USBtoLAN2
+auto wlan1
+iface wlan1 inet dhcp
 EOF
-sudo systemctl restart dnsmasq
 
-# Setup NAT (Network Address Translation)
-loading 2 "Mengatur NAT dengan iptables"
-sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-sudo iptables-save | sudo tee /etc/iptables/rules.v4
+# Aktifkan perubahan jaringan tanpa menyentuh end1
+echo "Merestart layanan jaringan untuk konfigurasi awal..."
+systemctl restart networking
 
-# Install ZeroTier
-loading 3 "Menginstal ZeroTier"
-curl -s https://install.zerotier.com | sudo bash
-sudo systemctl enable zerotier-one
-sudo systemctl start zerotier-one
+# Aktifkan IP forwarding
+echo "Mengaktifkan IP forwarding..."
+sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+sysctl -p
 
-# Tambahkan informasi ZeroTier
-read -p "Masukkan NETWORK_ID ZeroTier: " NETWORK_ID
-loading 2 "Bergabung ke jaringan ZeroTier"
-sudo zerotier-cli join $NETWORK_ID
+# Konfigurasi NAT
+echo "Menambahkan aturan NAT..."
+iptables -t nat -A POSTROUTING -o end1 -j MASQUERADE
+iptables-save > /etc/iptables/rules.v4
 
-# Install CasaOS
-loading 3 "Menginstal CasaOS"
-curl -fsSL https://get.casaos.io | sudo bash
+# Konfigurasi DHCP Server
+echo "Mengatur DHCP server..."
+cat <<EOF > /etc/dhcp/dhcpd.conf
+subnet 192.168.1.0 netmask 255.255.255.0 {
+    range 192.168.1.100 192.168.1.200;
+    option routers 192.168.1.1;
+    option domain-name-servers 192.168.1.1;
+}
+EOF
 
-# Pesan selesai
-echo "======================================"
-echo "Instalasi selesai!"
-echo "Akses GUI Cockpit di http://<IP_OrangePi>:9090"
-echo "Akses GUI CasaOS di http://<IP_OrangePi>:80"
-echo "======================================"
+echo 'INTERFACESv4="wlan0 enx207bd27e966e wlan1"' > /etc/default/isc-dhcp-server
+
+# Restart layanan DHCP server
+echo "Merestart layanan DHCP server..."
+systemctl restart isc-dhcp-server
+
+# Tambahkan repositori Webmin
+echo "Menambahkan repositori Webmin..."
+cat <<EOF >> /etc/apt/sources.list
+deb http://download.webmin.com/download/repository sarge contrib
+EOF
+
+wget -qO - http://www.webmin.com/jcameron-key.asc | apt-key add -
+apt update
+apt install -y webmin
+
+# Konfigurasi firewall UFW
+echo "Mengkonfigurasi firewall..."
+ufw allow 10000/tcp
+ufw allow ssh
+ufw enable
+
+# Konfigurasi end1 (WAN) di akhir agar tidak memutus koneksi SSH
+echo "Mengatur konfigurasi end1 (WAN)..."
+cat <<EOF >> /etc/network/interfaces
+
+# Restart layanan jaringan dengan end1 diaktifkan
+echo "Merestart layanan jaringan dengan konfigurasi lengkap..."
+systemctl restart networking
+
+echo "Konfigurasi selesai! Anda dapat mengakses Webmin di https://<IP_Orange_Pi>:10000"
+
+# WAN
+auto end1
+iface end1 inet static
+    address 192.168.0.2
+    netmask 255.255.255.0
+    network 192.168.0.0
+    gateway 192.168.0.1
+    dns-nameservers 192.168.0.1
+    broadcast 192.168.0.255
+EOF
+
