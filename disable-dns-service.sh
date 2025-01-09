@@ -34,15 +34,11 @@ resolv_conf="/etc/resolv.conf"
 echo "List of processes with port 53 open:"
 lsof -i :53 || netstat -tulpn | grep ":53 "
 
-read -p "This will display processes using port 53 and then disable systemd-resolved. Continue? (y/n): " choice
-if [[ ! "$choice" =~ [yY] ]]; then
-    echo "Aborted."
-    exit 0
-fi
 
 echo "Disabling and stopping systemd-resolved..."
 systemctl disable resolvconf-pull-resolved.service
 systemctl disable resolvconf-pull-resolved.path
+sudo systemctl stop dnsmasq
 
 echo "Checking if port 53 is clear..."
 if lsof -i :53 | grep -q '.'; then
@@ -50,6 +46,7 @@ if lsof -i :53 | grep -q '.'; then
 else
     echo "Port 53 is clear."
 fi
+
 
 current_dns=$(grep '^nameserver' "$resolv_conf" | awk '{print $2}')
 echo "Current DNS: $current_dns"
