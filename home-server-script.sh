@@ -83,7 +83,7 @@ EOL
     systemctl restart networking
     echo -e "${GREEN}Networking services restarted.${NC}"
     echo -e "${GREEN}Done setting up network interfaces.${NC}"
-
+}
 
 #2. Update Source List
 add_repositories() {
@@ -95,7 +95,7 @@ add_repositories() {
         # Add the repository to /etc/apt/sources.list
         echo "$repo_url" | tee -a /etc/apt/sources.list > /dev/null
         echo -e "${GREEN}Repository $repo_url added successfully.${NC}"
-
+}
 #3. Update & Upgrade System
 upgrade_system() {
     echo -e "${GREEN}Updating and Upgrading system...${NC}"
@@ -109,7 +109,6 @@ update_repository() {
     apt update
     echo -e "${GREEN}Done updating source list.${NC}"
 }
-
 
 #5. Install & Configure DHCP Server
 install_configure_dhcp() {
