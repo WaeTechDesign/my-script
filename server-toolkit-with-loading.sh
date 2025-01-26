@@ -181,6 +181,7 @@ EOL
         # Specify interfaces to listen on in the /etc/default/isc-dhcp-server file
         sed -i "/INTERFACESv4=\"\"/a INTERFACESv4=\"$interface_name\"" /etc/default/isc-dhcp-server
         echo -e "${GREEN}DHCP server configured for $interface_name.${NC}"
+    done
 
     # Restart DHCP server
     systemctl restart isc-dhcp-server
@@ -241,8 +242,9 @@ install_casaos() {
 # 12. Configure HDD/SSD and External Storage for CasaOS
 config_storage() {
     echo -e "${GREEN}Configuring HDD/SSD for CasaOS...${NC}"
-    spinner &
-    # Your code for configuring HDD/SSD goes here
+    lsblk
+    read -p "Enter the mount point: " mount_point
+    sudo chmod -R 777 "$mount_point"
     echo -e "${GREEN}Done configuring external storage.${NC}"
 }
 
