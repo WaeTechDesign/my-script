@@ -83,7 +83,7 @@ EOL
     systemctl restart networking
     echo -e "${GREEN}Networking services restarted.${NC}"
     echo -e "${GREEN}Done setting up network interfaces.${NC}"
-}
+
 
 #2. Update Source List
 add_repositories() {
