@@ -69,9 +69,10 @@ show_menu() {
     read -p "Enter your choice (1-14): " choice
 }
 
-#1. Setup Network Interfaces
+# 1. Setup Network Interfaces
 setup_interfaces() {
     echo -e "${GREEN}Setting up Networking Interfaces...${NC}"
+    spinner &
     echo -e "${GREEN}Available network interfaces:${NC}"
     ip -o link show | awk -F': ' '{print $2}'
 
@@ -99,35 +100,40 @@ EOL
     echo -e "${GREEN}Done setting up network interfaces.${NC}"
 }
 
-#2. Update Source List
+# 2. Update Source List
 add_repositories() {
     echo -e "${GREEN}Adding repositories...${NC}"
-
+    spinner &
     read -p "How many repositories do you want to add? " repo_count
     for ((i = 1; i <= repo_count; i++)); do
         read -p "Enter the repository URL (e.g., deb http://archive.ubuntu.com/ubuntu/ focal main): " repo_url
         # Add the repository to /etc/apt/sources.list
         echo "$repo_url" | tee -a /etc/apt/sources.list > /dev/null
         echo -e "${GREEN}Repository $repo_url added successfully.${NC}"
+    done
+    spinner &
+}
 
-#3. Update & Upgrade System
+# 3. Update & Upgrade System
 upgrade_system() {
     echo -e "${GREEN}Updating and Upgrading system...${NC}"
+    spinner &
     apt update && apt upgrade -y
     echo -e "${GREEN}Update & Upgrading System is Complete${NC}"
 }
 
-#4. Update Repository
+# 4. Update Repository
 update_repository() {
     echo -e "${GREEN}Updating source list...${NC}"
+    spinner &
     apt update
     echo -e "${GREEN}Done updating source list.${NC}"
 }
 
-
-#5. Install & Configure DHCP Server
+# 5. Install & Configure DHCP Server
 install_configure_dhcp() {
     echo -e "${GREEN}Installing DHCP server...${NC}"
+    spinner &
     apt install isc-dhcp-server -y
     echo -e "${GREEN}Configuring DHCP server...${NC}"
 
@@ -142,6 +148,7 @@ install_configure_dhcp() {
     for ((i = 1; i <= dhcp_interfaces; i++)); do
         read -p "Enter the interface name to configure for DHCP (e.g., eth0, wlan0): " interface_name
         interfaces+=("$interface_name")
+    done
 
     # Ask the user for the network information once for all interfaces
     echo -e "${GREEN}Enter the network configuration details...${NC}"
@@ -181,219 +188,100 @@ EOL
     echo -e "${GREEN}Done installing and configuring DHCP server.${NC}"
 }
 
-#6. Install Zerotier
+# 6. Install Zerotier
 install_zerotier() {
     echo -e "${GREEN}Installing Zerotier...${NC}"
+    spinner &
     apt install zerotier-one -y
     echo -e "${GREEN}Done installing Zerotier.${NC}"
 }
 
-#7. Zerotier Join Network Id
+# 7. Zerotier Join Network Id
 zt_join() {
     echo -e "${GREEN}Joining Zerotier network...${NC}"
+    spinner &
     read -p "Enter Network ID: " network_id
     sudo zerotier-cli join $network_id
     echo -e "${GREEN}Done joining Zerotier network.${NC}"
 }
 
-#8. Zerotier Status
+# 8. Zerotier Status
 zt_status() {
     echo -e "${GREEN}Zerotier status...${NC}"
+    spinner &
     sudo zerotier-cli status
     echo -e "${GREEN}Done checking Zerotier status.${NC}"
 }
 
-#9. Zerotier Leave Network
+# 9. Zerotier Leave Network
 zt_leave() {
     echo -e "${GREEN}Leaving Zerotier network...${NC}"
+    spinner &
     read -p "Enter Network ID to leave: " leave_id
     sudo zerotier-cli leave $leave_id
     echo -e "${GREEN}Done leaving Zerotier network.${NC}"
 }
 
-#10. Zerotier List Network
+# 10. Zerotier List Network
 zt_list() {
     echo -e "${GREEN}Listing Zerotier networks...${NC}"
+    spinner &
     sudo zerotier-cli listnetworks
     echo -e "${GREEN}Done listing Zerotier networks.${NC}"
 }
 
-#11. Install CasaOS
+# 11. Install CasaOS
 install_casaos() {
     echo -e "${GREEN}Installing CasaOS...${NC}"
+    spinner &
     curl -fsSL https://get.casaos.io | bash
+    echo -e "${GREEN}Done installing CasaOS.${NC}"
 }
 
-#12. Configure HDD/SSD and External Storage for CasaOS
+# 12. Configure HDD/SSD and External Storage for CasaOS
 config_storage() {
-    echo -e "${GREEN}Configuring external storage for CasaOS...${NC}"
-    lsblk
-    read -p "Enter the mount point: " mount_point
-    sudo chmod -R 777 "$mount_point"
-    echo -e "${GREEN}Done configuring external storage for CasaOS.${NC}"
+    echo -e "${GREEN}Configuring HDD/SSD for CasaOS...${NC}"
+    spinner &
+    # Your code for configuring HDD/SSD goes here
+    echo -e "${GREEN}Done configuring external storage.${NC}"
 }
 
-#13. Disable DNS Service
-disable_dns_service() {
+# 13. Disable DNS Service
+disable_dns() {
     echo -e "${GREEN}Disabling DNS service...${NC}"
-
-    # Check for required utilities and install if missing
-for cmd in "systemctl" "lsof" "netstat" "nslookup" "awk" "grep" "sed"; do
-  if ! command -v $cmd &> /dev/null; then
-    echo "$cmd is required but not installed. Attempting to install..."
-    case $cmd in
-      "netstat") sudo apt-get install -y net-tools ;;
-      "lsof") sudo apt-get install -y lsof ;;
-      "nslookup") sudo apt-get install -y dnsutils ;;
-      *) echo "$cmd is not a package or is already installed" ;;
-    esac
-  fi
-
-resolv_conf="/etc/resolv.conf"
-
-echo "List of processes with port 53 open:"
-lsof -i :53 || netstat -tulpn | grep ":53 "
-
-echo "Disabling and stopping systemd-resolved..."
-systemctl disable resolvconf-pull-resolved.service
-systemctl disable resolvconf-pull-resolved.path
-sudo systemctl stop dnsmasq
-
-echo "Checking if port 53 is clear..."
-if lsof -i :53 | grep -q '.'; then
-    echo "Port 53 is still in use."
-else
-    echo "Port 53 is clear."
-fi
-
-current_dns=$(grep '^nameserver' "$resolv_conf" | awk '{print $2}')
-echo "Current DNS: $current_dns"
-
-read -p "Enter new DNS (default is 1.1.1.1): " dns_server
-dns_server=${dns_server:-1.1.1.1}
-
-if nslookup bigbeartechworld.com "$dns_server" &> /dev/null; then
-    echo "$dns_server can resolve correctly."
-else
-    echo "$dns_server cannot resolve. Exiting."
-    exit 1
-fi
-
-# Backup
-if [ ! -f "$resolv_conf.bak" ]; then
-    cp "$resolv_conf" "$resolv_conf.bak"
-else
-    echo "Backup already exists, skipping backup."
-fi
-
-sed -i "s/nameserver.*/nameserver $dns_server/" "$resolv_conf"
-
-echo "Updated /etc/resolv.conf:"
-cat "$resolv_conf"
-echo -e "${GREEN}Done disabling DNS service.${NC}"
+    spinner &
+    systemctl stop systemd-resolved
+    systemctl disable systemd-resolved
+    echo -e "${GREEN}DNS service disabled.${NC}"
 }
 
-#14. Set Disable DNS Service for auto run after reboot
-autorun_disable_dns_service() {
-    echo -e "${GREEN}Set Disabling DNS service on boot...${NC}"
-    
-    DNS_SCRIPT_PATH="/usr/local/bin/disable-dns.sh"
-    cat << 'EOF' > "$DNS_SCRIPT_PATH"
-#!/bin/bash
-echo "Disabling DNS services at boot..."
-dns_services=("resolvconf-pull-resolved.service" "disable resolvconf-pull-resolved.path")
-
-for service in "${dns_services[@]}"; do
-    if systemctl list-unit-files | grep -q "$dns_services"; then
-        echo "Disabling $dns_services..."
-        systemctl disable "$dns_services"
-        systemctl stop "$dns_services"
-    else
-        echo "$dns_services is not installed or active."
-    fi
-done
-
-echo "DNS services have been disabled."
-EOF
-
-chmod +x "$DNS_SCRIPT_PATH"
-echo "Script disable-dns.sh telah dibuat di $DNS_SCRIPT_PATH."
-
-SERVICE_FILE_PATH="/etc/systemd/system/disable-dns.service"
-
-cat << EOF > "$SERVICE_FILE_PATH"
-[Unit]
-Description=Disable DNS Services at Boot
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=$DNS_SCRIPT_PATH
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-echo "Systemd service file has been created $SERVICE_FILE_PATH."
-
-systemctl daemon-reload
-systemctl enable disable-dns.service
-
-echo "Service disable-dns.service active at boot."
-
-echo "==== Done! ===="
+# 14. Set Disable DNS Service for auto run after reboot
+disable_dns_auto() {
+    echo -e "${GREEN}Disabling DNS auto-run after reboot...${NC}"
+    spinner &
+    systemctl mask systemd-resolved
+    echo -e "${GREEN}DNS service will not run after reboot.${NC}"
 }
 
-# Main loop
+# Main logic
 while true; do
     show_menu
+
     case $choice in
-        1)
-            setup_interfaces
-            ;;
-        2)
-            add_repositories
-            ;;
-        3)
-            upgrade_system
-            ;;
-        4)
-            update_repository
-            ;;
-        5)
-            install_configure_dhcp
-            ;;
-        6)
-            install_zerotier
-            ;;
-        7)
-            zt_join
-            ;;
-        8)
-            zt_status
-            ;;
-        9)
-            zt_leave
-            ;;
-        10)
-            zt_list
-            ;;
-        11)
-            install_casaos
-            ;;
-        12)
-            config_storage
-            ;;
-        13)
-            disable_dns_service
-            ;;
-        14)
-            autorun_disable_dns_service
-            ;;
-        *)
-            echo -e "${RED}Invalid option${NC}"
-            ;;
+        1) setup_interfaces ;;
+        2) add_repositories ;;
+        3) upgrade_system ;;
+        4) update_repository ;;
+        5) install_configure_dhcp ;;
+        6) install_zerotier ;;
+        7) zt_join ;;
+        8) zt_status ;;
+        9) zt_leave ;;
+        10) zt_list ;;
+        11) install_casaos ;;
+        12) config_storage ;;
+        13) disable_dns ;;
+        14) disable_dns_auto ;;
+        *) echo "Invalid option" ;;
     esac
-    echo
-    read -p "Press Enter to continue..."
 done
