@@ -57,8 +57,6 @@ show_menu() {
 #1. Update Source List
 add_repositories() {
     echo -e "${GREEN}Adding repositories...${NC}"
-
-    read -p "How many repositories do you want to add? " repo_count
     read -p "Enter the repository URL (e.g., deb http://archive.ubuntu.com/ubuntu/ focal main): " repo_url
         # Add the repository to /etc/apt/sources.list
         echo "$repo_url" | tee -a /etc/apt/sources.list > /dev/null
