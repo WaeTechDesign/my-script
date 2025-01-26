@@ -73,12 +73,12 @@ setup_interfaces() {
         cp /etc/network/interfaces /etc/network/interfaces.bak
         cat <<EOL >> /etc/network/interfaces
 
-auto $interface_name
-iface $interface_name inet static
-  address $ip_address
-  netmask $netmask
-  gateway $gateway
-EOL
+            auto $interface_name
+            iface $interface_name inet static
+            address $ip_address
+            netmask $netmask
+            gateway $gateway
+        EOL
     echo -e "${GREEN}Interface $interface_name configured successfully.${NC}"
     systemctl restart networking
     echo -e "${GREEN}Networking services restarted.${NC}"
