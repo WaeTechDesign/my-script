@@ -1,36 +1,50 @@
 #!/bin/bash
 
-# Define multiple App Store URLs (separated by commas)
-APPSTORE_URLS="https://casaos-appstore.paodayag.dev/linuxserver.zip,https://play.cuse.eu.org/Cp0204-AppStore-Play.zip,https://play.cuse.eu.org/Cp0204-AppStore-Play-arm.zip,https://casaos-appstore.paodayag.dev/coolstore.zip,https://github.com/bigbeartechworld/big-bear-casaos,https://github.com/mariosemes/CasaOS-TMCstore/archive/refs/heads/main.zip,https://github.com/arch3rPro/Pentest-Docker/archive/refs/heads/master.zip"
+# Path ke file konfigurasi app-management.conf
+CONF_FILE="/etc/casaos/app-management.conf"
 
-# Check if CasaOS is installed
-if ! command casaos -v &> /dev/null; then
-    echo "CasaOS is not installed. Please install CasaOS first!"
-    exit 1
-fi
+# URL App Store yang ingin ditambahkan
+APPSTORE_URLS=(
+    "https://casaos.app/store/main.zip"
+    "https://github.com/bigbeartechworld/big-bear-casaos/archive/refs/heads/master.zip"
+    "https://casaos-appstore.paodayag.dev/linuxserver.zip"
+    "https://play.cuse.eu.org/Cp0204-AppStore-Play.zip"
+    "https://play.cuse.eu.org/Cp0204-AppStore-Play-arm.zip"
+    "https://casaos-appstore.paodayag.dev/coolstore.zip"
+    "https://github.com/mariosemes/CasaOS-TMCstore/archive/refs/heads/main.zip"
+    "https://github.com/arch3rPro/Pentest-Docker/archive/refs/heads/master.zip"
+)
 
-# Define CasaOS config file path
-CONFIG_FILE="/etc/casaos/gateway.ini"
+# Backup file konfigurasi sebelum diubah
+cp "$CONF_FILE" "$CONF_FILE.bak"
 
-# Check if the configuration file exists
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "CasaOS configuration file not found at $CONFIG_FILE"
-    exit 1
-fi
+# Fungsi untuk menambahkan URL App Store ke dalam file konfigurasi
+add_appstore_urls() {
+    # Cek apakah file sudah mengandung baris [server] dengan appstore
+    if grep -q '\[server\]' "$CONF_FILE"; then
+        echo "Section [server] found, adding appstore URLs..."
+    else
+        echo "[server]" >> "$CONF_FILE"
+        echo "Created [server] section in $CONF_FILE"
+    fi
 
-# Check if store_url exists in the config
-if grep -q "store_url" "$CONFIG_FILE"; then
-    # Replace existing store_url with new values
-    sed -i "s|store_url=.*|store_url=$APPSTORE_URLS|" "$CONFIG_FILE"
-    echo "App Store URLs updated successfully!"
-else
-    # Append new store_url if not found
-    echo -e "\nstore_url=$APPSTORE_URLS" >> "$CONFIG_FILE"
-    echo "App Store URLs added successfully!"
-fi
+    # Tambahkan URL appstore ke bagian [server]
+    for URL in "${APPSTORE_URLS[@]}"; do
+        # Cek jika URL sudah ada di file untuk menghindari duplikasi
+        if ! grep -q "$URL" "$CONF_FILE"; then
+            echo "appstore = $URL" >> "$CONF_FILE"
+            echo "Added: $URL"
+        else
+            echo "URL already exists: $URL"
+        fi
+    done
+}
 
-# Restart CasaOS to apply changes
+# Panggil fungsi untuk menambahkan URL App Store
+add_appstore_urls
+
+# Restart CasaOS untuk menerapkan perubahan
 echo "Restarting CasaOS..."
 sudo systemctl restart casaos
 
-echo "Done! You can now access the added App Stores in CasaOS."
+echo "App Store URLs have been added and CasaOS restarted."
