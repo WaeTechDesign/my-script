@@ -36,8 +36,8 @@ show_menu() {
     
     echo "===================="
     echo "1. Change IP - Change IP Static"
-    echo "2. Run Diagnostics - Collect system information and logs for troubleshooting"
-    echo "3. Fix Docker Permissions - Reset directory permissions and ownership for Docker"
+    echo "2. Run Diagnostics - Collect system information and logs of troubleshooting"
+    echo "3. Fix Docker Permissions - Reset directory permissions and ownership of Docker"
     echo "4. Fix Docker Overlay2 Issues - Repair storage driver problems and rebuild Docker structure"
     echo "5. Full System Reset - Clean reinstall of Docker and CasaOS (Backs up existing data from /var/lib/docker)"
     echo "6. Exit - Close the toolkit"
