@@ -44,7 +44,5 @@ add_appstore_urls() {
 add_appstore_urls
 
 # Restart CasaOS untuk menerapkan perubahan
-echo "Restarting CasaOS..."
-sudo systemctl restart casaos
-
-echo "App Store URLs have been added and CasaOS restarted."
+echo "Restarting..."
+sudo reboot
