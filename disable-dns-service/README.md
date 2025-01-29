@@ -1,0 +1,1 @@
+Run : curl -sSL https://raw.githubusercontent.com/WaeTechDesign/my-script/refs/heads/master/disable-dns-service/disable-dns-service.sh | bash

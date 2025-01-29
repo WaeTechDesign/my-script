@@ -1,0 +1,1 @@
+Run : curl -sSL https://raw.githubusercontent.com/WaeTechDesign/my-script/refs/heads/master/script-casa-os-tools/script-casa-os-tools.sh | bash

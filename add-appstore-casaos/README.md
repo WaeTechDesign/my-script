@@ -1,0 +1,1 @@
+Run : curl -sSL https://raw.githubusercontent.com/WaeTechDesign/my-script/refs/heads/master/add-appstore-casaos/add-appstore-casaos.sh | bash
