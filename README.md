@@ -1,1 +1,1 @@
-To Use Script : curl -sSL <raw link github> | bash
+To Use Script : curl -sSL (raw link github) | bash
