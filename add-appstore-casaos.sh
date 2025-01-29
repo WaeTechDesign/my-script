@@ -44,5 +44,6 @@ add_appstore_urls() {
 add_appstore_urls
 
 # Restart CasaOS untuk menerapkan perubahan
-echo "Restarting..."
+echo "Restarting CasaOS, Please reload browser after 1 Minutes..."
+sleep 10
 sudo reboot
