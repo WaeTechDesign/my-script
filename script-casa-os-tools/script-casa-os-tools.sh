@@ -44,10 +44,8 @@ show_menu() {
     read -p "Enter your choice (1-5): " choice
 }
 
-#
-change_ip(){
-    #!/bin/bash
-
+# Function to change IP
+change_ip() {
     # Display available network interfaces
     echo "Displaying available network interfaces:"
     ip link show | grep -E "^[0-9]+: (eth|enp|wlan)"
@@ -101,8 +99,8 @@ change_ip(){
     # Display the new IP settings
     echo "The new static IP settings have been applied to the $selected_interface interface:"
     ip a show $selected_interface
-
 }
+
 # Function to collect diagnostic information
 run_diagnostics() {
     echo -e "${GREEN}Starting CasaOS diagnostic collection...${NC}"
@@ -211,6 +209,7 @@ EOL
 
     echo -e "${GREEN}Overlay2 fix complete!${NC}"
 }
+
 # Function for full system reset
 full_reset() {
     echo -e "${RED}WARNING: This will remove all Docker containers, images, and reset CasaOS settings!${NC}"
@@ -273,8 +272,8 @@ EOL
     else
         echo "Reset cancelled."
     fi
-
 }
+
 # Main loop
 while true; do
     show_menu
