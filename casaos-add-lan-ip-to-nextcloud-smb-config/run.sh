@@ -28,7 +28,7 @@ fi
 echo "Using LAN IP: $lan_ip"
 
 # Backup the original config.php file
-cp /DATA/AppData/big-bear-nextcloud-smb/html/config/config.php /DATA/AppData/big-bear-nextcloud-smb/html/config/config.php.bak
+#cp /DATA/AppData/big-bear-nextcloud-smb/html/config/config.php /DATA/AppData/big-bear-nextcloud-smb/html/config/config.php.bak
 
 # Add the LAN IP to the config.php file
 awk -v ip="$lan_ip" '/0 => '\''localhost'\''/{print; print "    1 => '\''" ip "'\'',"; next}1' /DATA/AppData/big-bear-nextcloud-smb/html/config.php.bak > /DATA/AppData/big-bear-nextcloud-smb/html/config/config.php
